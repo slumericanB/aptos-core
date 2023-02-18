@@ -1,4 +1,4 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 use serde::{Deserialize, Serialize};
@@ -15,10 +15,10 @@ impl Policy {
     }
 
     pub fn public() -> Self {
-        Self::new(vec![Permission::new(
-            Identity::Anyone,
-            vec![Capability::Read, Capability::Write],
-        )])
+        Self::new(vec![Permission::new(Identity::Anyone, vec![
+            Capability::Read,
+            Capability::Write,
+        ])])
     }
 }
 

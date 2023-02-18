@@ -1,7 +1,10 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
-export interface TokenData {
+import { deserializePropertyMap, PropertyMap, PropertyValue } from "./utils/property_map_serde";
+
+export { PropertyMap, PropertyValue };
+export class TokenData {
   /** Unique name within this creator's account for this Token's collection */
   collection: string;
 
@@ -19,6 +22,32 @@ export interface TokenData {
 
   /** URL for additional information / media */
   uri: string;
+
+  /** default properties of token data */
+  default_properties: PropertyMap;
+
+  /** mutability config of tokendata fields */
+  mutability_config: boolean[];
+
+  constructor(
+    collection: string,
+    description: string,
+    name: string,
+    maximum: number,
+    supply: number,
+    uri: string,
+    default_properties: any,
+    mutability_config: boolean[],
+  ) {
+    this.collection = collection;
+    this.description = description;
+    this.name = name;
+    this.maximum = maximum;
+    this.supply = supply;
+    this.uri = uri;
+    this.default_properties = deserializePropertyMap(default_properties);
+    this.mutability_config = mutability_config;
+  }
 }
 
 export interface TokenDataId {
@@ -42,8 +71,18 @@ export interface TokenId {
 /** server will return string for u64 */
 type U64 = string;
 
-export interface Token {
+export class Token {
   id: TokenId;
+
   /** server will return string for u64 */
   amount: U64;
+
+  /** the property map of the token */
+  token_properties: PropertyMap;
+
+  constructor(id: TokenId, amount: U64, token_properties: any) {
+    this.id = id;
+    this.amount = amount;
+    this.token_properties = deserializePropertyMap(token_properties);
+  }
 }

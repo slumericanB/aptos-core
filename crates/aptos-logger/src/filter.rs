@@ -1,4 +1,4 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 //! Filtering definitions for controlling what modules and levels are logged
@@ -137,7 +137,7 @@ impl Filter {
         // Search for the longest match, the vector is assumed to be pre-sorted.
         for directive in self.directives.iter().rev() {
             match &directive.name {
-                Some(name) if !metadata.module_path().starts_with(name) => {}
+                Some(name) if !metadata.module_path().starts_with(name) => {},
                 Some(..) | None => return LevelFilter::from(metadata.level()) <= directive.level,
             }
         }

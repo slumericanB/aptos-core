@@ -1,5 +1,5 @@
 ---
-title: "Your First NFT"
+title: "Mint NFTs with the SDKs"
 slug: "your-first-nft"
 ---
 
@@ -8,12 +8,12 @@ import TabItem from '@theme/TabItem';
 import ThemedImage from '@theme/ThemedImage';
 import useBaseUrl from '@docusaurus/useBaseUrl';
 
-# Your First NFT
+# Mint NFTs with the Aptos SDKs
 
 This tutorial describes how to create and transfer NFTs on the Aptos blockchain. The Aptos implementation for core NFTs can be found in the [token.move](https://github.com/aptos-labs/aptos-core/blob/main/aptos-move/framework/aptos-token/sources/token.move) Move module.
 
 For reference, also see:
-* [mint_nft](https://github.com/aptos-labs/aptos-core/tree/main/aptos-move/move-examples/mint_nft) Move example
+* [mint_nft](https://github.com/aptos-labs/aptos-core/tree/main/aptos-move/move-examples/mint_nft) Move example on how to airdrop an NFT 
 * [mint_nft.rs](https://github.com/aptos-labs/aptos-core/blob/main/aptos-move/e2e-move-tests/src/tests/mint_nft.rs) Rust end-to-end test
 
 ## Step 1: Pick an SDK
@@ -45,12 +45,12 @@ git clone git@github.com:aptos-labs/aptos-core.git ~/aptos-core
 
   Install the necessary dependencies:
   ```bash
-  yarn install
+  pnpm install
   ```
 
   Run the Typescript [`simple_nft`](https://github.com/aptos-labs/aptos-core/blob/main/ecosystem/typescript/sdk/examples/typescript/simple_nft.ts) example:
   ```bash
-  yarn run simple_nft
+  pnpm run simple_nft
   ```
   </TabItem>
   <TabItem value="python" label="Python">
@@ -242,7 +242,7 @@ By default, the URLs for both the services point to Aptos devnet services. Howev
 
 ### Step 4.2: Creating local accounts
 
-The next step is to create two accounts locally. [Accounts](../concepts/basics-accounts.md) represent both on and off-chain state. Off-chain state consists of an address and the public/private key pair used to authenticate ownership. This step demonstrates how to generate that off-chain state.
+The next step is to create two accounts locally. [Accounts](../concepts/accounts.md) represent both on and off-chain state. Off-chain state consists of an address and the public/private key pair used to authenticate ownership. This step demonstrates how to generate that off-chain state.
 
 <Tabs groupId="sdk-examples">
   <TabItem value="typescript" label="Typescript">
@@ -297,12 +297,7 @@ In Aptos, each account must have an on-chain representation in order to receive 
 
 ---
 
-### Step 4.4: Creating a resource account
-
-Create a [resource account](../reference/glossary.md#resource-account) to [initialize](https://github.com/aptos-labs/aptos-core/tree/main/aptos-move/move-examples/resource_account) the `mint_nft` module and retrieve the signer capability from both the resource account and module account. To do so, call `create_resource_account_and_publish_package` to publish the module under the resource account's address and make this example code work. For an example, see: [mint_nft.rs](https://github.com/aptos-labs/aptos-core/blob/main/aptos-move/e2e-move-tests/src/tests/mint_nft.rs#L62).
-
-
-### Step 4.5: Creating a collection
+### Step 4.4: Creating a collection
 
 Now begins the process of creating tokens. First, the creator must create a collection to store tokens. A collection can contain zero, one, or many distinct tokens within it. The collection does not restrict the attributes of the tokens, as it is only a container.
 
@@ -525,7 +520,7 @@ Coming soon.
 
 ## Supporting documentation
 
-* [Account basics](../concepts/basics-accounts.md)
+* [Account basics](../concepts/accounts.md)
 * [TypeScript SDK](../sdks/ts-sdk/index.md)
 * [Python SDK](../sdks/python-sdk.md)
 * [Rust SDK](../sdks/rust-sdk.md)

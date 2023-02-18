@@ -1,12 +1,12 @@
 ---
-title: "Typescript SDK Overview"
+title: "Typescript SDK Architecture"
 slug: "typescript-sdk-overview"
 ---
 
 import ThemedImage from '@theme/ThemedImage';
 import useBaseUrl from '@docusaurus/useBaseUrl';
 
-# Typescript SDK Overview
+# Typescript SDK Architecture 
 
 This document describes the main features and components of the Aptos Typescript SDK.
 
@@ -63,17 +63,26 @@ The OpenAPI client is a set of classes that are generated based on the Aptos RES
 
 ### Aptos Account
 
-The [class AptosAccount](https://aptos-labs.github.io/ts-sdk-doc/classes/AptosAccount.html) provides the methods for:
+The [class AptosAccount](https://aptos-labs.github.io/ts-sdk-doc/classes/AptosAccount.html) has a constructor that creates a new account instance or retrieves an existing account instance; in addition, this class provides the methods for:
 
 - Generating Ed25519 key pairs.
 - Signing a bytes buffer with an Ed25519 public key, and
 - Deriving initial account addresses from the public keys.
+- Retrieving a resource account address by source address and seeds
+- Derives account address, public key and private key
 
 ### BCS Library
 
 A subset of BCS standards implemented in Typescript.
 
 ### Transaction builder
+
+The TS SDK exposes five transaction builder classes:
+- [TransactionBuilder](https://aptos-labs.github.io/ts-sdk-doc/classes/TransactionBuilder.html) that takes in a Signing Message (serialized raw transaction) and returns a signature.
+- [TransactionBuilderEd25519](https://aptos-labs.github.io/ts-sdk-doc/classes/TransactionBuilderEd25519.html) extends the TransactionBuilder class and provides a signing method for raw transactions with a single public key.
+- [TransactionBuilderMultiEd25519](https://aptos-labs.github.io/ts-sdk-doc/classes/TransactionBuilderMultiEd25519.html) extends the TransactionBuilder class and provides a signing method for signing a raw transaction with a multisig public key.
+- [TransactionBuilderABI](https://aptos-labs.github.io/ts-sdk-doc/classes/TransactionBuilderABI.html) builds raw transactions based on ABI.
+- [TransactionBuilderRemoteABI](https://aptos-labs.github.io/ts-sdk-doc/classes/TransactionBuilderRemoteABI.html) downloads JSON ABIs from the fullnodes. It then translates the JSON ABIs to the format that is accepted by TransactionBuilderABI.
 
 The transaction builder contains the Typescript types for constructing the transaction payloads. The transaction builder within the Typescript SDK supports the following transaction payloads:
 
@@ -84,22 +93,29 @@ The transaction builder contains the Typescript types for constructing the trans
 
 The [class AptosClient](https://aptos-labs.github.io/ts-sdk-doc/classes/AptosClient.html) exposes the methods for retrieving the account resources, transactions, modules and events.
 
-In addition, the `AptosClient` component supports two methods for transaction signing and submission.
-
-1. Submitting transactions in JSON format, which delegates the signing message (input to the signing function) creation to the API server. This is applicable when using the REST API and the Aptos server to generate the signing message, the transaction signature and submit the signed transaction to the Aptos blockchain. See the tutorial [Your First Transaction](/tutorials/first-transaction.md).
-2. Submitting transactions in BCS format, which prepares and signs the raw transactions on the client-side. This method leverages the BCS Library and Transaction Builder for constructing the transaction payloads. See the guide [Creating a Signed Transaction](/guides/sign-a-transaction.md).
-
-:::tip
-
-The second method, i.e., in BCS format, is the recommended way for submitting transactions to the Aptos blockchain.
-
-:::
+In addition, the `AptosClient` component supports submitting transactions in BCS format, which prepares and signs the raw transactions on the client-side. This method leverages the BCS Library and Transaction Builder for constructing the transaction payloads. See the guide [Creating a Signed Transaction](../../guides/sign-a-transaction.md).
 
 ### Token Client
 
 The class [TokenClient](https://aptos-labs.github.io/ts-sdk-doc/classes/TokenClient.html) provides methods for creating and querying the NFT collections and tokens.
+It covers (1) write methods that support creating, transferring, mutating and burning tokens on-chain and (2) read methods performing deserialization and returning data in TS objects.
 
-## Validation for Transaction Builder and BCS
+The main write methods supported by the token SDK are:
+- Create Collection
+- Create Token
+- Offer Token
+- Claim Token
+- Directly Transfer Token
+- Transfer Token with Opt-in
+- Mutate Token Properties
+- Burn Token by Owner or Creator
+
+The main read methods deserializing on-chain data to TS objects are:
+- Get CollectionData
+- Get TokenData
+- Get Token of an Account
+
+## Validation for the Transaction Builder and BCS
 
 The [BCS](https://docs.rs/bcs/latest/bcs/) is used to assemble and serialize the transaction payloads for signing and submission.
 
@@ -113,7 +129,7 @@ The Aptos SDK validates the Transaction Builder and BCS in two ways:
 
 An example of unit tests for the BCS serializer can be found [here](https://github.com/aptos-labs/aptos-core/blob/main/ecosystem/typescript/sdk/src/bcs/serializer.test.ts).
 
-An example of an e2e test for submitting a BCS transaction can be found [here](https://github.com/aptos-labs/aptos-core/blob/main/ecosystem/typescript/sdk/src/aptos_client.test.ts#L88).
+An example of an e2e test for submitting a BCS transaction can be found in [aptos_client.test.ts](https://github.com/aptos-labs/aptos-core/blob/f4a7820a61f22ed8306219621402d96f70379d20/ecosystem/typescript/sdk/src/tests/e2e/aptos_client.test.ts#L78).
 
 :::
 

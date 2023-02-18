@@ -1,4 +1,4 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 //! An implementation of HKDF, the HMAC-based Extract-and-Expand Key Derivation Function
@@ -79,9 +79,7 @@ use digest::{
     generic_array::{self, ArrayLength},
     BlockInput, FixedOutput, Reset, Update,
 };
-
 use generic_array::typenum::{IsGreaterOrEqual, True, U32};
-
 use std::marker::PhantomData;
 use thiserror::Error;
 

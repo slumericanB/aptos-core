@@ -1,8 +1,8 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 use super::*;
-use schemadb::{schema::fuzzing::assert_encode_decode, test_no_panic_decoding};
+use aptos_schemadb::{schema::fuzzing::assert_encode_decode, test_no_panic_decoding};
 
 // Tests that the DB can encode / decode data
 #[test]

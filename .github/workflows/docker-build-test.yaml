@@ -31,18 +31,21 @@ on: # build on main branch OR when a PR is labeled with `CICD:build-images`
     types: [labeled, opened, synchronize, reopened, auto_merge_enabled]
     paths:
       - ".github/workflows/docker-build-test.yaml"
-      - ".github/workflows/run-forge.yaml"
+      - ".github/workflows/workflow-run-forge.yaml"
       - ".github/workflows/docker-rust-build.yaml"
       - ".github/workflows/sdk-release.yaml"
+      - ".github/workflows/lint-test.yaml"
   push:
     branches:
       - main
-      - auto
-      - canary
-      - chaotic
+      # release branches
       - devnet
       - testnet
       - mainnet
+      - aptos-node-v*
+      # experimental branches
+      - performance_benchmark
+      - quorum-store
 
 # cancel redundant builds
 concurrency:
@@ -114,6 +117,7 @@ jobs:
       GIT_SHA: ${{ needs.determine-docker-build-metadata.outputs.gitSha }}
       TARGET_CACHE_ID: ${{ needs.determine-docker-build-metadata.outputs.targetCacheId }}
       PROFILE: release
+      BUILD_ADDL_TESTING_IMAGES: true
 
   rust-images-indexer:
     needs: [permission-check, determine-docker-build-metadata]
@@ -124,8 +128,9 @@ jobs:
       TARGET_CACHE_ID: ${{ needs.determine-docker-build-metadata.outputs.targetCacheId }}
       PROFILE: release
       FEATURES: indexer
+      BUILD_ADDL_TESTING_IMAGES: true
 
-  rust-images-testing:
+  rust-images-failpoints:
     needs: [permission-check, determine-docker-build-metadata]
     uses: ./.github/workflows/docker-rust-build.yaml
     secrets: inherit
@@ -134,7 +139,7 @@ jobs:
       TARGET_CACHE_ID: ${{ needs.determine-docker-build-metadata.outputs.targetCacheId }}
       PROFILE: release
       FEATURES: failpoints
-      BUILD_TEST_IMAGES: true
+      BUILD_ADDL_TESTING_IMAGES: true
 
   rust-images-performance:
     needs: [permission-check, determine-docker-build-metadata]
@@ -144,6 +149,21 @@ jobs:
       GIT_SHA: ${{ needs.determine-docker-build-metadata.outputs.gitSha }}
       TARGET_CACHE_ID: ${{ needs.determine-docker-build-metadata.outputs.targetCacheId }}
       PROFILE: performance
+      BUILD_ADDL_TESTING_IMAGES: true
+
+  rust-images-consensus-only-perf-test:
+    needs: [permission-check, determine-docker-build-metadata]
+    if: |
+      contains(github.event.pull_request.labels.*.name, 'CICD:build-consensus-only-image') ||
+      contains(github.event.pull_request.labels.*.name, 'CICD:run-consensus-only-perf-test')
+    uses: ./.github/workflows/docker-rust-build.yaml
+    secrets: inherit
+    with:
+      GIT_SHA: ${{ needs.determine-docker-build-metadata.outputs.gitSha }}
+      TARGET_CACHE_ID: ${{ needs.determine-docker-build-metadata.outputs.targetCacheId }}
+      PROFILE: release
+      FEATURES: consensus-only-perf-test
+      BUILD_ADDL_TESTING_IMAGES: true
 
   sdk-release:
     needs: [rust-images, determine-docker-build-metadata]
@@ -160,7 +180,8 @@ jobs:
       GIT_SHA: ${{ needs.determine-docker-build-metadata.outputs.gitSha }}
 
   forge-e2e-test:
-    needs: [rust-images, rust-images-testing, rust-images-performance, determine-docker-build-metadata]
+    needs:
+      [rust-images, rust-images-failpoints, determine-docker-build-metadata]
     if: |
       !contains(github.event.pull_request.labels.*.name, 'CICD:skip-forge-e2e-test') && (
         (github.event_name == 'push' && github.ref_name != 'main') ||
@@ -169,7 +190,7 @@ jobs:
         github.event.pull_request.auto_merge != null ||
         contains(github.event.pull_request.body, '#e2e')
       )
-    uses: ./.github/workflows/run-forge.yaml
+    uses: aptos-labs/aptos-core/.github/workflows/workflow-run-forge.yaml@main
     secrets: inherit
     with:
       GIT_SHA: ${{ needs.determine-docker-build-metadata.outputs.gitSha }}
@@ -181,7 +202,8 @@ jobs:
 
   # Run e2e compat test against testnet branch
   forge-compat-test:
-    needs: [rust-images, rust-images-testing, rust-images-performance, determine-docker-build-metadata]
+    needs:
+      [rust-images, rust-images-failpoints, determine-docker-build-metadata]
     if: |
       !contains(github.event.pull_request.labels.*.name, 'CICD:skip-forge-e2e-test') && (
         (github.event_name == 'push' && github.ref_name != 'main') ||
@@ -190,15 +212,33 @@ jobs:
         github.event.pull_request.auto_merge != null ||
         contains(github.event.pull_request.body, '#e2e')
       )
-    uses: ./.github/workflows/run-forge.yaml
+    uses: aptos-labs/aptos-core/.github/workflows/workflow-run-forge.yaml@main
     secrets: inherit
     with:
       GIT_SHA: ${{ needs.determine-docker-build-metadata.outputs.gitSha }}
       FORGE_TEST_SUITE: compat
-      IMAGE_TAG: 2d8b1b57553d869190f61df1aaf7f31a8fc19a7b # test against the latest build on testnet branch
+      IMAGE_TAG: testnet_2d8b1b57553d869190f61df1aaf7f31a8fc19a7b # test against the latest build on testnet branch
       FORGE_RUNNER_DURATION_SECS: 300
       COMMENT_HEADER: forge-compat
       # Use the cache ID as the Forge namespace so we can limit Forge test concurrency on k8s, since Forge
       # test lifecycle is separate from that of GHA. This protects us from the case where many Forge tests are triggered
       # by this GHA. If there is a Forge namespace collision, Forge will pre-empt the existing test running in the namespace.
       FORGE_NAMESPACE: forge-compat-${{ needs.determine-docker-build-metadata.outputs.targetCacheId }}
+
+  forge-consensus-only-perf-test:
+    needs:
+      [rust-images-consensus-only-perf-test, determine-docker-build-metadata]
+    if: |
+      contains(github.event.pull_request.labels.*.name, 'CICD:run-consensus-only-perf-test')
+    uses: aptos-labs/aptos-core/.github/workflows/workflow-run-forge.yaml@main
+    secrets: inherit
+    with:
+      GIT_SHA: ${{ needs.determine-docker-build-metadata.outputs.gitSha }}
+      FORGE_TEST_SUITE: consensus_only_perf_benchmark
+      IMAGE_TAG: consensus_only_perf_test_${{ needs.determine-docker-build-metadata.outputs.gitSha }}
+      FORGE_RUNNER_DURATION_SECS: 300
+      COMMENT_HEADER: forge-consensus-only-perf-test
+      # Use the cache ID as the Forge namespace so we can limit Forge test concurrency on k8s, since Forge
+      # test lifecycle is separate from that of GHA. This protects us from the case where many Forge tests are triggered
+      # by this GHA. If there is a Forge namespace collision, Forge will pre-empt the existing test running in the namespace.
+      FORGE_NAMESPACE: forge-consensus-only-perf-test-${{ needs.determine-docker-build-metadata.outputs.targetCacheId }}

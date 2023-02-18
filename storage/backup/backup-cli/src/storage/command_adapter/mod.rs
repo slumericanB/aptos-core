@@ -1,4 +1,4 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 mod command;
@@ -21,16 +21,27 @@ use crate::{
 use anyhow::Result;
 use async_trait::async_trait;
 use clap::Parser;
-use std::path::PathBuf;
+use serde::{Deserialize, Serialize};
+use std::{path::PathBuf, str::FromStr};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
-#[derive(Parser)]
+#[derive(Parser, Debug, Serialize, Deserialize)]
 pub struct CommandAdapterOpt {
     #[clap(
         long = "config",
         help = "Config file for the command adapter backup store."
     )]
     config: PathBuf,
+}
+
+impl FromStr for CommandAdapterOpt {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(CommandAdapterOpt {
+            config: PathBuf::from(s),
+        })
+    }
 }
 
 /// A BackupStorage that delegates required APIs to configured command lines.
@@ -59,10 +70,9 @@ impl CommandAdapter {
 impl BackupStorage for CommandAdapter {
     async fn create_backup(&self, name: &ShellSafeName) -> Result<BackupHandle> {
         let mut child = self
-            .cmd(
-                &self.config.commands.create_backup,
-                vec![EnvVar::backup_name(name.to_string())],
-            )
+            .cmd(&self.config.commands.create_backup, vec![
+                EnvVar::backup_name(name.to_string()),
+            ])
             .spawn()?;
         let mut backup_handle = BackupHandle::new();
         child
@@ -82,13 +92,10 @@ impl BackupStorage for CommandAdapter {
         name: &ShellSafeName,
     ) -> Result<(FileHandle, Box<dyn AsyncWrite + Send + Unpin>)> {
         let mut child = self
-            .cmd(
-                &self.config.commands.create_for_write,
-                vec![
-                    EnvVar::backup_handle(backup_handle.to_string()),
-                    EnvVar::file_name(name.to_string()),
-                ],
-            )
+            .cmd(&self.config.commands.create_for_write, vec![
+                EnvVar::backup_handle(backup_handle.to_string()),
+                EnvVar::file_name(name.to_string()),
+            ])
             .spawn()?;
         let mut file_handle = FileHandle::new();
         child
@@ -105,20 +112,18 @@ impl BackupStorage for CommandAdapter {
         file_handle: &FileHandleRef,
     ) -> Result<Box<dyn AsyncRead + Send + Unpin>> {
         let child = self
-            .cmd(
-                &self.config.commands.open_for_read,
-                vec![EnvVar::file_handle(file_handle.to_string())],
-            )
+            .cmd(&self.config.commands.open_for_read, vec![
+                EnvVar::file_handle(file_handle.to_string()),
+            ])
             .spawn()?;
         Ok(Box::new(child.into_data_source()))
     }
 
     async fn save_metadata_line(&self, name: &ShellSafeName, content: &TextLine) -> Result<()> {
         let mut child = self
-            .cmd(
-                &self.config.commands.save_metadata_line,
-                vec![EnvVar::file_name(name.to_string())],
-            )
+            .cmd(&self.config.commands.save_metadata_line, vec![
+                EnvVar::file_name(name.to_string()),
+            ])
             .spawn()?;
 
         child

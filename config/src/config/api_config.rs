@@ -1,4 +1,4 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::utils;
@@ -36,6 +36,11 @@ pub struct ApiConfig {
     /// Maximum page size for paginated APIs
     pub max_transactions_page_size: u16,
     pub max_events_page_size: u16,
+    pub max_account_resources_page_size: u16,
+    pub max_account_modules_page_size: u16,
+
+    /// Max gas unit for view function.
+    pub max_gas_view_function: u64,
 }
 
 pub const DEFAULT_ADDRESS: &str = "127.0.0.1";
@@ -43,6 +48,9 @@ pub const DEFAULT_PORT: u16 = 8080;
 pub const DEFAULT_REQUEST_CONTENT_LENGTH_LIMIT: u64 = 8 * 1024 * 1024; // 8 MB
 pub const DEFAULT_MAX_SUBMIT_TRANSACTION_BATCH_SIZE: usize = 10;
 pub const DEFAULT_MAX_PAGE_SIZE: u16 = 100;
+pub const DEFAULT_MAX_ACCOUNT_RESOURCES_PAGE_SIZE: u16 = 9999;
+pub const DEFAULT_MAX_ACCOUNT_MODULES_PAGE_SIZE: u16 = 9999;
+pub const DEFAULT_MAX_VIEW_GAS: u64 = 2_000_000; // We keep this value the same as the max number of gas allowed for one single transaction defined in aptos-gas.
 
 fn default_enabled() -> bool {
     true
@@ -71,6 +79,9 @@ impl Default for ApiConfig {
             max_submit_transaction_batch_size: DEFAULT_MAX_SUBMIT_TRANSACTION_BATCH_SIZE,
             max_transactions_page_size: DEFAULT_MAX_PAGE_SIZE,
             max_events_page_size: DEFAULT_MAX_PAGE_SIZE,
+            max_account_resources_page_size: DEFAULT_MAX_ACCOUNT_RESOURCES_PAGE_SIZE,
+            max_account_modules_page_size: DEFAULT_MAX_ACCOUNT_MODULES_PAGE_SIZE,
+            max_gas_view_function: DEFAULT_MAX_VIEW_GAS,
         }
     }
 }

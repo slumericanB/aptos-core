@@ -1,14 +1,8 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
-use std::sync::Arc;
-
 use anyhow::Result;
-use clap::Parser;
-
-use aptos_logger::{prelude::*, Level, Logger};
-use aptos_push_metrics::MetricsPusher;
-use backup_cli::{
+use aptos_backup_cli::{
     backup_types::{
         epoch_ending::backup::{EpochEndingBackupController, EpochEndingBackupOpt},
         state_snapshot::backup::{StateSnapshotBackupController, StateSnapshotBackupOpt},
@@ -22,10 +16,14 @@ use backup_cli::{
         ConcurrentDownloadsOpt, GlobalBackupOpt,
     },
 };
+use aptos_logger::{prelude::*, Level, Logger};
+use aptos_push_metrics::MetricsPusher;
+use clap::Parser;
+use std::sync::Arc;
 
 #[derive(Parser)]
 #[clap(about = "Ledger backup tool.")]
-enum Command {
+pub enum Command {
     #[clap(subcommand, about = "Manually run one shot commands.")]
     OneShot(OneShotCommand),
     #[clap(
@@ -36,7 +34,7 @@ enum Command {
 }
 
 #[derive(Parser)]
-enum OneShotCommand {
+pub enum OneShotCommand {
     #[clap(
         subcommand,
         about = "Query the backup service builtin in the local node."
@@ -47,7 +45,7 @@ enum OneShotCommand {
 }
 
 #[derive(Parser)]
-enum OneShotQueryType {
+pub enum OneShotQueryType {
     #[clap(
         about = "Queries the latest epoch, committed version and synced version of the local \
         node, via the backup service within it."
@@ -60,13 +58,13 @@ enum OneShotQueryType {
 }
 
 #[derive(Parser)]
-struct OneShotQueryNodeStateOpt {
+pub struct OneShotQueryNodeStateOpt {
     #[clap(flatten)]
     client: BackupServiceClientOpt,
 }
 
 #[derive(Parser)]
-struct OneShotQueryBackupStorageStateOpt {
+pub struct OneShotQueryBackupStorageStateOpt {
     #[clap(flatten)]
     metadata_cache: MetadataCacheOpt,
     #[clap(flatten)]
@@ -76,7 +74,7 @@ struct OneShotQueryBackupStorageStateOpt {
 }
 
 #[derive(Parser)]
-struct OneShotBackupOpt {
+pub struct OneShotBackupOpt {
     #[clap(flatten)]
     global: GlobalBackupOpt,
 
@@ -110,7 +108,7 @@ enum BackupType {
 }
 
 #[derive(Parser)]
-enum CoordinatorCommand {
+pub enum CoordinatorCommand {
     #[clap(
         about = "Run the backup coordinator which backs up blockchain data continuously off \
     a Aptos Node."
@@ -119,7 +117,7 @@ enum CoordinatorCommand {
 }
 
 #[derive(Parser)]
-struct CoordinatorRunOpt {
+pub struct CoordinatorRunOpt {
     #[clap(flatten)]
     global: GlobalBackupOpt,
 
@@ -142,7 +140,7 @@ async fn main() -> Result<()> {
 }
 
 async fn main_impl() -> Result<()> {
-    Logger::new().level(Level::Info).read_env().init();
+    Logger::new().level(Level::Info).init();
     #[allow(deprecated)]
     let _mp = MetricsPusher::start();
 
@@ -157,7 +155,7 @@ async fn main_impl() -> Result<()> {
                     } else {
                         println!("DB not bootstrapped.")
                     }
-                }
+                },
                 OneShotQueryType::BackupStorageState(opt) => {
                     let view = cache::sync_and_load(
                         &opt.metadata_cache,
@@ -166,7 +164,7 @@ async fn main_impl() -> Result<()> {
                     )
                     .await?;
                     println!("{}", view.get_storage_state()?)
-                }
+                },
             },
             OneShotCommand::Backup(opt) => {
                 let client = Arc::new(BackupServiceClient::new_with_opt(opt.client));
@@ -182,7 +180,7 @@ async fn main_impl() -> Result<()> {
                         )
                         .run()
                         .await?;
-                    }
+                    },
                     BackupType::StateSnapshot { opt, storage } => {
                         StateSnapshotBackupController::new(
                             opt,
@@ -192,7 +190,7 @@ async fn main_impl() -> Result<()> {
                         )
                         .run()
                         .await?;
-                    }
+                    },
                     BackupType::Transaction { opt, storage } => {
                         TransactionBackupController::new(
                             opt,
@@ -202,9 +200,9 @@ async fn main_impl() -> Result<()> {
                         )
                         .run()
                         .await?;
-                    }
+                    },
                 }
-            }
+            },
         },
         Command::Coordinator(coordinator_cmd) => match coordinator_cmd {
             CoordinatorCommand::Run(opt) => {
@@ -216,7 +214,7 @@ async fn main_impl() -> Result<()> {
                 )
                 .run()
                 .await?;
-            }
+            },
         },
     }
     Ok(())

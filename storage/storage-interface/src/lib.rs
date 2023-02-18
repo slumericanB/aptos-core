@@ -1,16 +1,13 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 use anyhow::{anyhow, format_err, Result};
 use aptos_crypto::{hash::CryptoHash, HashValue};
-use aptos_types::account_config::NewBlockEvent;
-use aptos_types::state_store::state_storage_usage::StateStorageUsage;
-use aptos_types::state_store::table::{TableHandle, TableInfo};
 use aptos_types::{
     access_path::AccessPath,
     account_address::AccountAddress,
-    account_config::CORE_CODE_ADDRESS,
-    contract_event::EventWithVersion,
+    account_config::{NewBlockEvent, CORE_CODE_ADDRESS},
+    contract_event::{ContractEvent, EventWithVersion},
     epoch_change::EpochChangeProof,
     epoch_state::EpochState,
     event::EventKey,
@@ -19,18 +16,21 @@ use aptos_types::{
     on_chain_config::{access_path_for_config, ConfigID},
     proof::{
         AccumulatorConsistencyProof, SparseMerkleProof, SparseMerkleProofExt,
-        SparseMerkleRangeProof, TransactionAccumulatorSummary,
+        SparseMerkleRangeProof, TransactionAccumulatorRangeProof, TransactionAccumulatorSummary,
     },
     state_proof::StateProof,
     state_store::{
         state_key::StateKey,
         state_key_prefix::StateKeyPrefix,
+        state_storage_usage::StateStorageUsage,
         state_value::{StateValue, StateValueChunkWithProof},
+        table::{TableHandle, TableInfo},
     },
     transaction::{
-        AccountTransactionsWithProof, TransactionInfo, TransactionListWithProof,
+        AccountTransactionsWithProof, Transaction, TransactionInfo, TransactionListWithProof,
         TransactionOutputListWithProof, TransactionToCommit, TransactionWithProof, Version,
     },
+    write_set::WriteSet,
 };
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc};
@@ -49,6 +49,10 @@ pub mod sync_proof_fetcher;
 
 use crate::state_delta::StateDelta;
 pub use executed_trees::ExecutedTrees;
+
+// This is last line of defense against large queries slipping through external facing interfaces,
+// like the API and State Sync, etc.
+pub const MAX_REQUEST_LIMIT: u64 = 10000;
 
 pub trait StateSnapshotReceiver<K, V>: Send {
     fn add_chunk(&mut self, chunk: Vec<(K, V)>, proof: SparseMerkleRangeProof) -> Result<()>;
@@ -202,6 +206,47 @@ pub trait DbReader: Send + Sync {
         unimplemented!()
     }
 
+    fn get_transaction_iterator(
+        &self,
+        start_version: Version,
+        limit: u64,
+    ) -> Result<Box<dyn Iterator<Item = Result<Transaction>> + '_>> {
+        unimplemented!()
+    }
+
+    fn get_transaction_info_iterator(
+        &self,
+        start_version: Version,
+        limit: u64,
+    ) -> Result<Box<dyn Iterator<Item = Result<TransactionInfo>> + '_>> {
+        unimplemented!()
+    }
+
+    fn get_events_iterator(
+        &self,
+        start_version: Version,
+        limit: u64,
+    ) -> Result<Box<dyn Iterator<Item = Result<Vec<ContractEvent>>> + '_>> {
+        unimplemented!()
+    }
+
+    fn get_write_set_iterator(
+        &self,
+        start_version: Version,
+        limit: u64,
+    ) -> Result<Box<dyn Iterator<Item = Result<WriteSet>> + '_>> {
+        unimplemented!()
+    }
+
+    fn get_transaction_accumulator_range_proof(
+        &self,
+        start_version: Version,
+        limit: u64,
+        ledger_version: Version,
+    ) -> Result<TransactionAccumulatorRangeProof> {
+        unimplemented!()
+    }
+
     /// See [AptosDB::get_block_timestamp].
     ///
     /// [AptosDB::get_block_timestamp]:
@@ -245,14 +290,15 @@ pub trait DbReader: Send + Sync {
         unimplemented!()
     }
 
-    /// Returns the key, value pairs for a particular state key prefix at at desired version. This
+    /// Returns the (key, value) iterator for a particular state key prefix at at desired version. This
     /// API can be used to get all resources of an account by passing the account address as the
     /// key prefix.
-    fn get_state_values_by_key_prefix(
+    fn get_prefixed_state_value_iterator(
         &self,
         key_prefix: &StateKeyPrefix,
+        cursor: Option<&StateKey>,
         version: Version,
-    ) -> Result<HashMap<StateKey, StateValue>> {
+    ) -> Result<Box<dyn Iterator<Item = Result<(StateKey, StateValue)>> + '_>> {
         unimplemented!()
     }
 
@@ -496,7 +542,7 @@ impl MoveStorage for &dyn DbReader {
         version: Version,
     ) -> Result<Vec<u8>> {
         let state_value =
-            self.get_state_value_by_version(&StateKey::AccessPath(access_path), version)?;
+            self.get_state_value_by_version(&StateKey::access_path(access_path), version)?;
 
         state_value
             .ok_or_else(|| format_err!("no value found in DB"))
@@ -505,7 +551,7 @@ impl MoveStorage for &dyn DbReader {
 
     fn fetch_config_by_version(&self, config_id: ConfigID, version: Version) -> Result<Vec<u8>> {
         let config_value_option = self.get_state_value_by_version(
-            &StateKey::AccessPath(AccessPath::new(
+            &StateKey::access_path(AccessPath::new(
                 CORE_CODE_ADDRESS,
                 access_path_for_config(config_id).path,
             )),

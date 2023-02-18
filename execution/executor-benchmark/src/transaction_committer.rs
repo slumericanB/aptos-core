@@ -1,24 +1,23 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 use aptos_crypto::hash::HashValue;
-use aptos_logger::prelude::*;
-use aptos_types::aggregate_signature::AggregateSignature;
-use aptos_types::{
-    block_info::BlockInfo,
-    ledger_info::{LedgerInfo, LedgerInfoWithSignatures},
-    transaction::Version,
-};
-use aptos_vm::AptosVM;
-use aptosdb::metrics::API_LATENCY_SECONDS;
-use executor::{
-    block_executor::BlockExecutor,
+use aptos_db::metrics::API_LATENCY_SECONDS;
+use aptos_executor::{
+    block_executor::{BlockExecutor, TransactionBlockExecutor},
     metrics::{
         APTOS_EXECUTOR_COMMIT_BLOCKS_SECONDS, APTOS_EXECUTOR_EXECUTE_BLOCK_SECONDS,
         APTOS_EXECUTOR_VM_EXECUTE_BLOCK_SECONDS,
     },
 };
-use executor_types::BlockExecutorTrait;
+use aptos_executor_types::BlockExecutorTrait;
+use aptos_logger::prelude::*;
+use aptos_types::{
+    aggregate_signature::AggregateSignature,
+    block_info::BlockInfo,
+    ledger_info::{LedgerInfo, LedgerInfoWithSignatures},
+    transaction::Version,
+};
 use std::{
     sync::{mpsc, Arc},
     time::{Duration, Instant},
@@ -46,15 +45,19 @@ pub(crate) fn gen_li_with_sigs(
     )
 }
 
-pub struct TransactionCommitter {
-    executor: Arc<BlockExecutor<AptosVM>>,
+pub struct TransactionCommitter<V, T> {
+    executor: Arc<BlockExecutor<V, T>>,
     version: Version,
     block_receiver: mpsc::Receiver<(HashValue, HashValue, Instant, Instant, Duration, usize)>,
 }
 
-impl TransactionCommitter {
+impl<V, T> TransactionCommitter<V, T>
+where
+    V: TransactionBlockExecutor<T>,
+    T: Send + Sync,
+{
     pub fn new(
-        executor: Arc<BlockExecutor<AptosVM>>,
+        executor: Arc<BlockExecutor<V, T>>,
         version: Version,
         block_receiver: mpsc::Receiver<(HashValue, HashValue, Instant, Instant, Duration, usize)>,
     ) -> Self {

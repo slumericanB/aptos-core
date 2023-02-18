@@ -1,4 +1,4 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 //! This crate implements wrappers around our [Noise][noise] implementation.
@@ -11,9 +11,9 @@
 //! Usage example:
 //!
 //! ```
-//! use network::noise::{AntiReplayTimestamps, HandshakeAuthMode, NoiseUpgrader};
+//! use aptos_network::noise::{AntiReplayTimestamps, HandshakeAuthMode, NoiseUpgrader};
 //! use futures::{executor, future, io::{AsyncReadExt, AsyncWriteExt}};
-//! use memsocket::MemorySocket;
+//! use aptos_memsocket::MemorySocket;
 //! use aptos_config::{config::{Peer, PeerRole, RoleType}, network_id::{NetworkContext, NetworkId}};
 //! use aptos_crypto::{x25519, ed25519, Uniform, PrivateKey, test_utils::TEST_SEED};
 //! use aptos_infallible::RwLock;

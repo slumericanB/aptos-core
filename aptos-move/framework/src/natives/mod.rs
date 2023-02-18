@@ -1,14 +1,16 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 pub mod account;
 pub mod aggregator_natives;
 pub mod any;
 pub mod code;
+pub mod create_signer;
 pub mod cryptography;
 pub mod event;
 pub mod hash;
 mod helpers;
+pub mod object;
 pub mod state_storage;
 pub mod transaction_context;
 pub mod type_info;
@@ -16,9 +18,8 @@ pub mod util;
 
 use crate::natives::cryptography::multi_ed25519;
 use aggregator_natives::{aggregator, aggregator_factory};
+use aptos_gas_algebra_ext::AbstractValueSize;
 use cryptography::ed25519;
-use gas_algebra_ext::AbstractValueSize;
-
 use move_core_types::{account_address::AccountAddress, identifier::Identifier};
 use move_vm_runtime::native_functions::{make_table_from_iter, NativeFunctionTable};
 use move_vm_types::values::Value;
@@ -46,6 +47,7 @@ pub struct GasParameters {
     pub state_storage: state_storage::GasParameters,
     pub aggregator: aggregator::GasParameters,
     pub aggregator_factory: aggregator_factory::GasParameters,
+    pub object: object::GasParameters,
 }
 
 impl GasParameters {
@@ -53,7 +55,7 @@ impl GasParameters {
         Self {
             account: account::GasParameters {
                 create_address: account::CreateAddressGasParameters { base: 0.into() },
-                create_signer: account::CreateSignerGasParameters { base: 0.into() },
+                create_signer: create_signer::CreateSignerGasParameters { base: 0.into() },
             },
             bls12381: cryptography::bls12381::GasParameters {
                 base: 0.into(),
@@ -118,6 +120,22 @@ impl GasParameters {
                     base: 0.into(),
                     per_byte: 0.into(),
                 },
+                sha2_512: hash::Sha2_512HashGasParameters {
+                    base: 0.into(),
+                    per_byte: 0.into(),
+                },
+                sha3_512: hash::Sha3_512HashGasParameters {
+                    base: 0.into(),
+                    per_byte: 0.into(),
+                },
+                ripemd160: hash::Ripemd160HashGasParameters {
+                    base: 0.into(),
+                    per_byte: 0.into(),
+                },
+                blake2b_256: hash::Blake2B256HashGasParameters {
+                    base: 0.into(),
+                    per_byte: 0.into(),
+                },
             },
             type_info: type_info::GasParameters {
                 type_of: type_info::TypeOfGasParameters {
@@ -128,6 +146,7 @@ impl GasParameters {
                     base: 0.into(),
                     per_byte_in_str: 0.into(),
                 },
+                chain_id: type_info::ChainIdGasParameters { base: 0.into() },
             },
             util: util::GasParameters {
                 from_bytes: util::FromBytesGasParameters {
@@ -164,6 +183,11 @@ impl GasParameters {
             aggregator_factory: aggregator_factory::GasParameters {
                 new_aggregator: aggregator_factory::NewAggregatorGasParameters { base: 0.into() },
             },
+            object: object::GasParameters {
+                exists_at: object::ExistsAtGasParameters {
+                    base_cost: 0.into(),
+                },
+            },
         }
     }
 }
@@ -176,7 +200,7 @@ pub fn all_natives(
     let mut natives = vec![];
 
     macro_rules! add_natives_from_module {
-        ($module_name: expr, $natives: expr) => {
+        ($module_name:expr, $natives:expr) => {
             natives.extend(
                 $natives.map(|(func_name, func)| ($module_name.to_string(), func_name, func)),
             );
@@ -184,8 +208,15 @@ pub fn all_natives(
     }
 
     add_natives_from_module!("account", account::make_all(gas_params.account.clone()));
+    add_natives_from_module!(
+        "create_signer",
+        create_signer::make_all(gas_params.account.create_signer.clone())
+    );
     add_natives_from_module!("ed25519", ed25519::make_all(gas_params.ed25519.clone()));
-    add_natives_from_module!("genesis", account::make_all(gas_params.account));
+    add_natives_from_module!(
+        "genesis",
+        create_signer::make_all(gas_params.account.create_signer)
+    );
     add_natives_from_module!("multi_ed25519", multi_ed25519::make_all(gas_params.ed25519));
     add_natives_from_module!(
         "bls12381",
@@ -221,6 +252,7 @@ pub fn all_natives(
         "aggregator_factory",
         aggregator_factory::make_all(gas_params.aggregator_factory)
     );
+    add_natives_from_module!("object", object::make_all(gas_params.object));
 
     make_table_from_iter(framework_addr, natives)
 }

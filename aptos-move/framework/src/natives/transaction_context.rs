@@ -1,4 +1,4 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 use better_any::{Tid, TidAble};
@@ -9,8 +9,7 @@ use move_vm_types::{
     loaded_data::runtime_types::Type, natives::function::NativeResult, values::Value,
 };
 use smallvec::smallvec;
-use std::collections::VecDeque;
-use std::sync::Arc;
+use std::{collections::VecDeque, fmt::Debug, sync::Arc};
 
 /// The native transaction context extension. This needs to be attached to the
 /// NativeContextExtensions value which is passed into session functions, so its accessible from
@@ -18,13 +17,21 @@ use std::sync::Arc;
 #[derive(Tid)]
 pub struct NativeTransactionContext {
     script_hash: Vec<u8>,
+    chain_id: u8,
 }
 
 impl NativeTransactionContext {
     /// Create a new instance of a native transaction context. This must be passed in via an
     /// extension into VM session functions.
-    pub fn new(script_hash: Vec<u8>) -> Self {
-        Self { script_hash }
+    pub fn new(script_hash: Vec<u8>, chain_id: u8) -> Self {
+        Self {
+            script_hash,
+            chain_id,
+        }
+    }
+
+    pub fn chain_id(&self) -> u8 {
+        self.chain_id
     }
 }
 
@@ -47,10 +54,9 @@ fn native_get_script_hash(
 ) -> PartialVMResult<NativeResult> {
     let transaction_context = context.extensions().get::<NativeTransactionContext>();
 
-    Ok(NativeResult::ok(
-        gas_params.base,
-        smallvec![Value::vector_u8(transaction_context.script_hash.clone())],
-    ))
+    Ok(NativeResult::ok(gas_params.base, smallvec![
+        Value::vector_u8(transaction_context.script_hash.clone())
+    ]))
 }
 
 pub fn make_native_get_script_hash(gas_params: GetScriptHashGasParameters) -> NativeFunction {

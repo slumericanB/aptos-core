@@ -1,11 +1,10 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 #[cfg(test)]
 mod tests;
 
 use super::{BackupHandle, BackupHandleRef, FileHandle, FileHandleRef};
-
 use crate::{
     storage::{BackupStorage, ShellSafeName, TextLine},
     utils::{error_notes::ErrorNotes, path_exists, PathToString},
@@ -13,13 +12,17 @@ use crate::{
 use anyhow::Result;
 use async_trait::async_trait;
 use clap::Parser;
-use std::path::{Path, PathBuf};
+use serde::{Deserialize, Serialize};
+use std::{
+    path::{Path, PathBuf},
+    str::FromStr,
+};
 use tokio::{
     fs::{create_dir_all, read_dir, OpenOptions},
     io::{AsyncRead, AsyncWrite, AsyncWriteExt},
 };
 
-#[derive(Parser)]
+#[derive(Parser, Debug, Serialize, Deserialize)]
 pub struct LocalFsOpt {
     #[clap(
         long = "dir",
@@ -27,6 +30,16 @@ pub struct LocalFsOpt {
         help = "Target local dir to hold backups."
     )]
     pub dir: PathBuf,
+}
+
+impl FromStr for LocalFsOpt {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(LocalFsOpt {
+            dir: PathBuf::from(s),
+        })
+    }
 }
 
 /// A storage backend that stores everything in a local directory.

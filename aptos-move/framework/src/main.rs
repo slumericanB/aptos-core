@@ -1,11 +1,10 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 #![forbid(unsafe_code)]
 
+use aptos_framework::{ReleaseOptions, ReleaseTarget};
 use clap::Parser;
-use framework::ReleaseOptions;
-use framework::ReleaseTarget;
 
 #[derive(Parser)]
 #[clap(name = "aptos-framework", author, version, propagate_version = true)]

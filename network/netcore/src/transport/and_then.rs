@@ -1,4 +1,4 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::transport::{ConnectionOrigin, Transport};
@@ -34,11 +34,11 @@ where
     // TODO don't require the error types to be the same
     Fut: Future<Output = Result<O, T::Error>> + Send,
 {
-    type Output = O;
     type Error = T::Error;
-    type Listener = AndThenStream<T::Listener, F>;
     type Inbound = AndThenFuture<T::Inbound, Fut, F>;
+    type Listener = AndThenStream<T::Listener, F>;
     type Outbound = AndThenFuture<T::Outbound, Fut, F>;
+    type Output = O;
 
     fn listen_on(
         &self,

@@ -1,4 +1,4 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{
@@ -7,19 +7,16 @@ use crate::{
     MoveValue, VerifyInput, VerifyInputWithRecursion, U64,
 };
 use anyhow::{bail, Context as AnyhowContext};
-use aptos_crypto::ed25519::{ED25519_PUBLIC_KEY_LENGTH, ED25519_SIGNATURE_LENGTH};
-use aptos_crypto::multi_ed25519::{BITMAP_NUM_OF_BYTES, MAX_NUM_OF_KEYS};
 use aptos_crypto::{
-    ed25519::{self, Ed25519PublicKey},
-    multi_ed25519::{self, MultiEd25519PublicKey},
+    ed25519::{self, Ed25519PublicKey, ED25519_PUBLIC_KEY_LENGTH, ED25519_SIGNATURE_LENGTH},
+    multi_ed25519::{self, MultiEd25519PublicKey, BITMAP_NUM_OF_BYTES, MAX_NUM_OF_KEYS},
 };
-use aptos_types::transaction::authenticator::MAX_NUM_OF_SIGS;
 use aptos_types::{
     account_address::AccountAddress,
     block_metadata::BlockMetadata,
     contract_event::{ContractEvent, EventWithVersion},
     transaction::{
-        authenticator::{AccountAuthenticator, TransactionAuthenticator},
+        authenticator::{AccountAuthenticator, TransactionAuthenticator, MAX_NUM_OF_SIGS},
         Script, SignedTransaction, TransactionOutput, TransactionWithProof,
     },
 };
@@ -226,7 +223,7 @@ impl Transaction {
             Transaction::BlockMetadataTransaction(txn) => &txn.info,
             Transaction::PendingTransaction(_txn) => {
                 bail!("pending transaction does not have TransactionInfo")
-            }
+            },
             Transaction::GenesisTransaction(txn) => &txn.info,
             Transaction::StateCheckpointTransaction(txn) => &txn.info,
         })
@@ -826,6 +823,7 @@ impl VerifyInput for TransactionSignature {
 
 impl TryFrom<TransactionSignature> for TransactionAuthenticator {
     type Error = anyhow::Error;
+
     fn try_from(ts: TransactionSignature) -> anyhow::Result<Self> {
         Ok(match ts {
             TransactionSignature::Ed25519Signature(sig) => sig.try_into()?,
@@ -844,15 +842,17 @@ pub struct Ed25519Signature {
 
 impl VerifyInput for Ed25519Signature {
     fn verify(&self) -> anyhow::Result<()> {
-        if self.public_key.inner().len() != ED25519_PUBLIC_KEY_LENGTH {
+        let public_key_len = self.public_key.inner().len();
+        let signature_len = self.signature.inner().len();
+        if public_key_len != ED25519_PUBLIC_KEY_LENGTH {
             bail!(
-                "Ed25519 signature's public key is an invalid number of bytes, should be {} bytes",
-                ED25519_PUBLIC_KEY_LENGTH
+                "Ed25519 signature's public key is an invalid number of bytes, should be {} bytes but found {}",
+                ED25519_PUBLIC_KEY_LENGTH, public_key_len
             )
-        } else if self.signature.inner().len() != ED25519_SIGNATURE_LENGTH {
+        } else if signature_len != ED25519_SIGNATURE_LENGTH {
             bail!(
-                "Ed25519 signature length is an invalid number of bytes, should be {} bytes",
-                ED25519_SIGNATURE_LENGTH
+                "Ed25519 signature length is an invalid number of bytes, should be {} bytes but found {}",
+                ED25519_SIGNATURE_LENGTH, signature_len
             )
         } else {
             // TODO: Check if they match / parse correctly?

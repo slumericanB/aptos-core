@@ -1,7 +1,8 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
-import { AptosAccount, AptosAccountObject } from "./aptos_account";
+import { AptosAccount, AptosAccountObject, getAddressFromAccountOrAddress } from "./aptos_account";
+import { HexString } from "./hex_string";
 
 const aptosAccountObject: AptosAccountObject = {
   address: "0x978c213990c4833df71548df7ce49d54c759d6b6d932de22b24d56060b7af2aa",
@@ -64,4 +65,22 @@ test("Signs Strings", () => {
     // eslint-disable-next-line max-len
     "0xc5de9e40ac00b371cd83b1c197fa5b665b7449b33cd3cdd305bb78222e06a671a49625ab9aea8a039d4bb70e275768084d62b094bc1b31964f2357b7c1af7e0d",
   );
+});
+
+test("Gets the resource account address", () => {
+  const sourceAddress = "0xca843279e3427144cead5e4d5999a3d0";
+  const seed = new Uint8Array([1]);
+
+  expect(AptosAccount.getResourceAccountAddress(sourceAddress, seed).hex()).toBe(
+    "0xcbed05b37b6981a57f535c1f5d136734df822abaf4cd30c51c9b4d60eae79d5d",
+  );
+});
+
+test("Test getAddressFromAccountOrAddress", () => {
+  const account = AptosAccount.fromAptosAccountObject(aptosAccountObject);
+  expect(getAddressFromAccountOrAddress(aptosAccountObject.address!).toString()).toBe(aptosAccountObject.address);
+  expect(getAddressFromAccountOrAddress(HexString.ensure(aptosAccountObject.address!)).toString()).toBe(
+    aptosAccountObject.address,
+  );
+  expect(getAddressFromAccountOrAddress(account).toString()).toBe(aptosAccountObject.address);
 });

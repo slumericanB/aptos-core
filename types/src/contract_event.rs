@@ -1,4 +1,4 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{
@@ -9,7 +9,6 @@ use crate::{
 use anyhow::{Error, Result};
 use aptos_crypto_derive::{BCSCryptoHash, CryptoHasher};
 use move_core_types::{language_storage::TypeTag, move_resource::MoveStructType};
-
 #[cfg(any(test, feature = "fuzzing"))]
 use proptest_derive::Arbitrary;
 use serde::{Deserialize, Serialize};

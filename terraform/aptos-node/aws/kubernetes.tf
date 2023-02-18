@@ -125,9 +125,9 @@ locals {
     numFullnodeGroups = var.num_fullnode_groups
     imageTag          = var.image_tag
     chain = {
-      era        = var.era
-      chain_id   = var.chain_id
-      chain_name = var.chain_name
+      era      = var.era
+      chain_id = var.chain_id
+      name     = var.chain_name
     }
     validator = {
       name = var.validator_name
@@ -178,16 +178,25 @@ resource "helm_release" "validator" {
   max_history = 5
   wait        = false
 
+  # lifecycle {
+  #   ignore_changes = [
+  #     values,
+  #   ]
+  # }
+
   values = [
     local.helm_values,
     var.helm_values_file != "" ? file(var.helm_values_file) : "{}",
     jsonencode(var.helm_values),
   ]
 
-  # inspired by https://stackoverflow.com/a/66501021 to trigger redeployment whenever any of the charts file contents change.
-  set {
-    name  = "chart_sha1"
-    value = sha1(join("", [for f in fileset(local.aptos_node_helm_chart_path, "**") : filesha1("${local.aptos_node_helm_chart_path}/${f}")]))
+  dynamic "set" {
+    for_each = var.manage_via_tf ? toset([""]) : toset([])
+    content {
+      # inspired by https://stackoverflow.com/a/66501021 to trigger redeployment whenever any of the charts file contents change.
+      name  = "chart_sha1"
+      value = sha1(join("", [for f in fileset(local.aptos_node_helm_chart_path, "**") : filesha1("${local.aptos_node_helm_chart_path}/${f}")]))
+    }
   }
 }
 

@@ -1,4 +1,4 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::rate_limit::{Bucket, SharedBucket};
@@ -47,7 +47,7 @@ impl PollRateLimiter {
                     self.delay = Some(Box::pin(sleep_until(tokio::time::Instant::from_std(
                         wait_time,
                     ))));
-                }
+                },
             }
         }
     }

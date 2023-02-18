@@ -1,22 +1,20 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 use aptos_bitvec::BitVec;
 use aptos_crypto::HashValue;
+use aptos_language_e2e_tests::{
+    account_universe::{log_balance_strategy, AUTransactionGen, AccountUniverseGen},
+    executor::FakeExecutor,
+    gas_costs::TXN_RESERVED,
+};
 use aptos_types::{
     block_metadata::BlockMetadata,
     on_chain_config::{OnChainConfig, ValidatorSet},
     transaction::Transaction,
 };
-use aptos_vm::{
-    data_cache::AsMoveResolver, parallel_executor::ParallelAptosVM, AptosVM, VMExecutor,
-};
+use aptos_vm::{block_executor::BlockAptosVM, data_cache::AsMoveResolver};
 use criterion::{measurement::Measurement, BatchSize, Bencher};
-use language_e2e_tests::{
-    account_universe::{log_balance_strategy, AUTransactionGen, AccountUniverseGen},
-    executor::FakeExecutor,
-    gas_costs::TXN_RESERVED,
-};
 use proptest::{
     collection::vec,
     strategy::{Strategy, ValueTree},
@@ -38,7 +36,6 @@ where
 {
     /// The number of accounts created by default.
     pub const DEFAULT_NUM_ACCOUNTS: usize = 100;
-
     /// The number of transactions created by default.
     pub const DEFAULT_NUM_TRANSACTIONS: usize = 1000;
 
@@ -188,7 +185,7 @@ impl TransactionBenchState {
     fn execute(self) {
         // The output is ignored here since we're just testing transaction performance, not trying
         // to assert correctness.
-        AptosVM::execute_block(self.transactions, self.executor.get_state_view())
+        BlockAptosVM::execute_block(self.transactions, self.executor.get_state_view(), 1)
             .expect("VM should not fail to start");
     }
 
@@ -196,7 +193,7 @@ impl TransactionBenchState {
     fn execute_parallel(self) {
         // The output is ignored here since we're just testing transaction performance, not trying
         // to assert correctness.
-        ParallelAptosVM::execute_block(
+        BlockAptosVM::execute_block(
             self.transactions,
             self.executor.get_state_view(),
             num_cpus::get(),

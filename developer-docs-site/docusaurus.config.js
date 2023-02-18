@@ -6,6 +6,8 @@ const darkCodeTheme = require("prism-react-renderer/themes/dracula");
 
 const codeInjector = require("./src/remark/code-injector");
 
+const { ProvidePlugin } = require("webpack");
+
 // KaTeX plugin stuff
 const math = require("remark-math");
 const katex = require("rehype-katex");
@@ -35,6 +37,7 @@ const config = {
           remarkPlugins: [codeInjector, math],
           path: "docs",
           rehypePlugins: [katex],
+          showLastUpdateTime: true,
         },
         sitemap: {
           changefreq: "daily",
@@ -57,6 +60,12 @@ const config = {
       href: "https://cdn.jsdelivr.net/npm/katex@0.13.24/dist/katex.min.css",
       type: "text/css",
       integrity: "sha384-odtC+0UGzzFL/6PNoE8rX/SPcQDXBJ+uRepguP4QkPCm2LBxH3FA3y+fKSiJ+AmM",
+      crossorigin: "anonymous",
+    },
+    {
+      href: "https://unpkg.com/@stoplight/elements@7.7.5/styles.min.css",
+      type: "text/css",
+      integrity: "sha384-1lLf7J28IOR7k5RlItk6Y+G3hDgVB3y4RCgWNq6ZSwjYfvJXPtZAdW0uklsAZbGW",
       crossorigin: "anonymous",
     },
   ],
@@ -88,47 +97,154 @@ const config = {
           },
           {
             type: "dropdown",
+            label: "Start",
+            position: "left",
+            items: [
+              {
+                label: "See What's New",
+                type: "doc",
+                docId: "whats-new-in-docs",
+              },
+              {
+                label: "Read the Aptos White Paper",
+                type: "doc",
+                docId: "aptos-white-paper/index",
+              },
+              {
+                label: "Learn Aptos Concepts",
+                type: "doc",
+                docId: "concepts/index",
+              },
+              {
+                label: "Prepare Your Environment",
+                type: "doc",
+                docId: "guides/getting-started",
+              },
+              {
+                label: "Integrate with Aptos",
+                type: "doc",
+                docId: "guides/system-integrators-guide",
+              },
+            ],
+          },
+          {
+            type: "dropdown",
+            label: "Apps",
+            position: "left",
+            items: [
+              {
+                type: "doc",
+                label: "Follow the Aptos Standards",
+                docId: "concepts/coin-and-token/index",
+              },
+              {
+                type: "doc",
+                label: "Read Blockchain Data",
+                docId: "/category/data",
+              },
+              {
+                type: "doc",
+                label: "Interact with the Blockchain",
+                docId: "guides/index",
+              },
+              {
+                type: "doc",
+                label: "Develop with the SDKs",
+                docId: "tutorials/index",
+              },
+              {
+                type: "doc",
+                label: "Integrate with Wallets",
+                docId: "concepts/wallet-adapter-concept",
+              },
+              {
+                type: "doc",
+                label: "Build E2E Dapp on Aptos",
+                docId: "tutorials/build-e2e-dapp/index",
+              },
+            ],
+          },
+          {
+            type: "dropdown",
             label: "Move",
             position: "left",
             items: [
               {
-                label: "Move Guides",
+                label: "Write Move Smart Contracts",
                 type: "doc",
                 docId: "guides/move-guides/index",
+              },
+              {
+                label: "Move on Aptos",
+                type: "doc",
+                docId: "guides/move-guides/move-on-aptos",
+              },
+              {
+                label: "Move Structure",
+                type: "doc",
+                docId: "guides/move-guides/move-structure",
+              },
+              {
+                label: "How Base Gas Works",
+                type: "doc",
+                docId: "concepts/base-gas",
+              },
+              {
+                label: "Interact with Move VM",
+                type: "doc",
+                docId: "guides/interacting-with-the-blockchain",
               },
               {
                 label: "Your First Move Module",
                 type: "doc",
                 docId: "tutorials/first-move-module",
               },
+              {
+                label: "Upgrade Move Code",
+                type: "doc",
+                docId: "guides/move-guides/upgrading-move-code",
+              },
             ],
           },
           {
             type: "dropdown",
-            label: "Applications",
+            label: "Tokens",
             position: "left",
             items: [
               {
                 type: "doc",
-                label: "Your First Transaction",
-                docId: "tutorials/first-transaction",
+                label: "Create Tokens on Aptos",
+                docId: "/category/nft",
               },
               {
                 type: "doc",
-                label: "Your First DApp",
-                docId: "tutorials/first-dapp",
+                label: "Compare Token Standards",
+                docId: "concepts/coin-and-token/aptos-token-comparison",
               },
-              /*
               {
                 type: "doc",
-                label: "Your First Coin",
-                docId: "tutorials/first-coin",
-              },
-              */
-              {
-                type: "doc",
-                label: "Your First NFT",
+                label: "Mint NFTs with the SDKs",
                 docId: "tutorials/your-first-nft",
+              },
+              {
+                type: "doc",
+                label: "Mint NFTs with the Aptos CLI",
+                docId: "guides/move-guides/mint-nft-cli",
+              },
+              {
+                type: "doc",
+                label: "Mint FTs with On-Chain Data",
+                docId: "concepts/coin-and-token/onchain-data",
+              },
+              {
+                type: "doc",
+                label: "Mint NFTs with the Mint Tool",
+                docId: "concepts/coin-and-token/nft-minting-tool",
+              },
+              {
+                type: "doc",
+                label: "Airdrop Aptos Tokens",
+                docId: "concepts/coin-and-token/airdrop-aptos-tokens",
               },
             ],
           },
@@ -138,42 +254,78 @@ const config = {
             position: "left",
             items: [
               {
-                label: "Aptos Blockchain Deployments",
+                label: "Learn about Nodes",
                 type: "doc",
-                docId: "nodes/aptos-deployments",
+                docId: "nodes/nodes-landing",
               },
               {
-                label: "Validators",
+                type: "doc",
+                label: "Develop Locally",
+                docId: "nodes/local-testnet/index",
+              },
+              {
+                label: "Run a Validator",
                 type: "doc",
                 docId: "nodes/validator-node/index",
               },
               {
-                label: "FullNodes",
+                label: "Run a FullNode",
                 type: "doc",
                 docId: "nodes/full-node/index",
               },
               {
-                label: "Local Testnet",
+                label: "Run an Indexer",
                 type: "doc",
-                docId: "nodes/local-testnet/index",
+                docId: "nodes/indexer-fullnode",
               },
               {
-                label: "Node Health Checker",
+                label: "Monitor a Node",
                 type: "doc",
-                docId: "nodes/node-health-checker/index",
+                docId: "nodes/measure/index",
+              },
+              {
+                label: "Configure a Node",
+                type: "doc",
+                docId: "nodes/identity-and-configuration",
               },
             ],
           },
           {
+            type: "dropdown",
+            label: "Reference",
             position: "left",
-            href: "https://fullnode.devnet.aptoslabs.com/v1/spec#/",
-            label: "REST API",
-          },
-          {
-            position: "left",
-            type: "doc",
-            docId: "aptos-white-paper/index",
-            label: "Aptos White Paper",
+            items: [
+              {
+                label: "Aptos References",
+                type: "doc",
+                docId: "reference/index",
+              },
+              {
+                label: "REST API",
+                type: "doc",
+                docId: "nodes/aptos-api-spec",
+              },
+              {
+                label: "Aptos SDKs",
+                type: "doc",
+                docId: "sdks/index",
+              },
+              {
+                label: "Move References",
+                type: "doc",
+                docId: "reference/move",
+              },
+              {
+                label: "Aptos Glossary",
+                type: "doc",
+                docId: "reference/glossary",
+              },
+              {
+                label: "Issues and Workarounds",
+                type: "doc",
+                docId: "issues-and-workarounds",
+              },
+            ],
           },
         ],
       },
@@ -194,7 +346,7 @@ const config = {
                       <a href="https://aptosfoundation.org/privacy" target="_blank">Privacy</a>
                       <a href="https://aptosfoundation.org/terms" target="_blank">Terms</a></div>
                   </div>
-                </div>  
+                </div>
                 `,
               },
             ],
@@ -274,11 +426,38 @@ const config = {
               "/basics/basics-accounts",
               "/basics/basics-events",
               "/basics/basics-gas-txn-fee",
-              "/basics/basics-merkle-proof",
               "/basics/basics-fullnodes",
               "/basics/basics-validator-nodes",
               "/basics/basics-node-networks-sync",
             ],
+          },
+          {
+            to: "/concepts/txns-states",
+            from: ["/concepts/basics-txns-states"],
+          },
+          {
+            to: "/concepts/accounts",
+            from: ["/concepts/basics-accounts"],
+          },
+          {
+            to: "/concepts/events",
+            from: ["/concepts/basics-events"],
+          },
+          {
+            to: "/concepts/gas-txn-fee",
+            from: ["/concepts/basics-gas-txn-fee"],
+          },
+          {
+            to: "/concepts/fullnodes",
+            from: ["/concepts/basics-fullnodes"],
+          },
+          {
+            to: "/concepts/validator-nodes",
+            from: ["/concepts/basics-validator-nodes"],
+          },
+          {
+            to: "/concepts/node-networks-sync",
+            from: ["/concepts/basics-node-networks-sync"],
           },
           {
             to: "/nodes/local-testnet/run-a-local-testnet",
@@ -309,8 +488,8 @@ const config = {
             from: "/aptos-developer-resources",
           },
           {
-            to: "/concepts/basics-txns-states",
-            from: "/concepts/basics-merkle-proof",
+            to: "/concepts/txns-states",
+            from: "/concepts/merkle-proof",
           },
           {
             to: "/nodes/validator-node/operator/connect-to-aptos-network",
@@ -335,6 +514,36 @@ const config = {
         ],
       },
     ],
+    () => ({
+      name: "custom-webpack-config",
+      configureWebpack: () => {
+        return {
+          module: {
+            rules: [
+              {
+                test: /\.m?js/,
+                resolve: {
+                  fullySpecified: false,
+                },
+              },
+            ],
+          },
+          plugins: [
+            new ProvidePlugin({
+              process: require.resolve("process/browser"),
+            }),
+          ],
+          resolve: {
+            fallback: {
+              buffer: require.resolve("buffer"),
+              stream: false,
+              path: false,
+              process: false,
+            },
+          },
+        };
+      },
+    }),
   ],
 };
 

@@ -11,7 +11,6 @@ To make your validator node and validator fullnode deployment hassle-free, make 
 
 - **Both a validator node and a validator fullnode required:** For the Aptos mainnet, we require that you run a validator node and a validator fullnode. We strongly recommend that you run the validator node and the validator fullnode on two separate and independent machines. Make sure that these machines are well-provisioned and isolated from each other. Guaranteeing the resource isolation between the validator and the validator fullnode will help ensure smooth deployment of these nodes.
 - **Public fullnode is optional:** We recommend that optionally you run a public fullnode also. However, a public fullnode is not required. If you run public fullnode also, then we strongly recommend that you run the public fullnode on a third machine that is separate and independent from either the validator or the validator fullnode machines. 
-- **Cloud is preferred:** For best availability and stability, **we recommend that you deploy your nodes on the cloud**. 
 :::tip Terraform support
 For deploying the nodes in cloud we have provided Terraform support on two cloud providers: **GCP** and **AWS**. See [**Running Validator Node**](running-validator-node/index.md).
 :::
@@ -69,6 +68,7 @@ You can configure the port settings on your node using the configuration YAML fi
 For the validator:
 
 - Open the TCP port 6180, to enable the validators to talk to each other.
+- Open the TCP port 6181, to enable validator fullnode to connect.
 - Open the TCP port 9101, to send the validator metrics to validate the health stats.
 - Make sure to keep the TCP port 6186 open for the local backup storage service. 
 

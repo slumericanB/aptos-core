@@ -1,9 +1,9 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
+use aptos_framework::path_in_crate;
 use aptos_gas::{AbstractValueSizeGasParameters, NativeGasParameters, LATEST_GAS_FEATURE_VERSION};
 use aptos_vm::natives;
-use framework::path_in_crate;
 use move_cli::base::test::{run_move_unit_tests, UnitTestResult};
 use move_unit_test::UnitTestingConfig;
 use move_vm_runtime::native_functions::NativeFunctionTable;
@@ -21,6 +21,7 @@ fn run_tests_for_pkg(path_to_pkg: impl Into<String>) {
         // TODO(Gas): double check if this is correct
         UnitTestingConfig::default_with_bound(Some(100_000)),
         aptos_test_natives(),
+        /* cost_table */ None,
         /* compute_coverage */ false,
         &mut std::io::stdout(),
     )
@@ -47,8 +48,13 @@ fn move_framework_unit_tests() {
 }
 
 #[test]
-fn move_stdlib_unit_tests() {
+fn move_aptos_stdlib_unit_tests() {
     run_tests_for_pkg("aptos-stdlib");
+}
+
+#[test]
+fn move_stdlib_unit_tests() {
+    run_tests_for_pkg("move-stdlib");
 }
 
 #[test]

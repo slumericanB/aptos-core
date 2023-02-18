@@ -1,4 +1,4 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 #![allow(dead_code)]
@@ -6,7 +6,7 @@
 // TODO: There are no negative tests at the moment (e.g. deriving NumVariants on a struct or union).
 // Add some, possibly using compiletest-rs: https://github.com/laumann/compiletest-rs
 
-use num_variants::NumVariants;
+use aptos_num_variants::NumVariants;
 
 #[derive(NumVariants)]
 enum BasicEnum {

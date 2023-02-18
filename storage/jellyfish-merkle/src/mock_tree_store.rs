@@ -1,4 +1,4 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{
@@ -84,7 +84,7 @@ where
             Entry::Occupied(o) => bail!("Key {:?} exists.", o.key()),
             Entry::Vacant(v) => {
                 v.insert(node);
-            }
+            },
         }
         Ok(())
     }

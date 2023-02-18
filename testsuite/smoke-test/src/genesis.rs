@@ -1,23 +1,31 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{
     smoke_test_environment::SwarmBuilder,
     storage::{db_backup, db_restore},
-    test_utils::{check_create_mint_transfer_node, swarm_utils::insert_waypoint},
+    test_utils::{
+        check_create_mint_transfer_node, swarm_utils::insert_waypoint, MAX_CATCH_UP_WAIT_SECS,
+        MAX_CONNECTIVITY_WAIT_SECS, MAX_HEALTHY_WAIT_SECS,
+    },
     workspace_builder,
     workspace_builder::workspace_root,
 };
 use anyhow::anyhow;
 use aptos_config::config::NodeConfig;
+use aptos_forge::{get_highest_synced_version, LocalNode, Node, NodeExt, SwarmExt, Validator};
 use aptos_logger::prelude::*;
 use aptos_temppath::TempPath;
 use aptos_types::{transaction::Transaction, waypoint::Waypoint};
-use forge::{get_highest_synced_version, LocalNode, Node, NodeExt, SwarmExt, Validator};
 use move_core_types::language_storage::CORE_CODE_ADDRESS;
 use regex::Regex;
-use std::time::Instant;
-use std::{fs, process::Command, str::FromStr, time::Duration};
+use std::{
+    fs,
+    path::PathBuf,
+    process::Command,
+    str::FromStr,
+    time::{Duration, Instant},
+};
 
 fn update_node_config_restart(validator: &mut LocalNode, mut config: NodeConfig) {
     validator.stop();
@@ -27,9 +35,11 @@ fn update_node_config_restart(validator: &mut LocalNode, mut config: NodeConfig)
 }
 
 async fn wait_for_node(validator: &mut dyn Validator, expected_to_connect: usize) {
-    let deadline = Instant::now().checked_add(Duration::from_secs(60)).unwrap();
+    let healthy_deadline = Instant::now()
+        .checked_add(Duration::from_secs(MAX_HEALTHY_WAIT_SECS))
+        .unwrap();
     validator
-        .wait_until_healthy(deadline)
+        .wait_until_healthy(healthy_deadline)
         .await
         .unwrap_or_else(|err| {
             let lsof_output = Command::new("lsof").arg("-i").output().unwrap();
@@ -39,8 +49,12 @@ async fn wait_for_node(validator: &mut dyn Validator, expected_to_connect: usize
             );
         });
     info!("Validator restart health check passed");
+
+    let connectivity_deadline = Instant::now()
+        .checked_add(Duration::from_secs(MAX_CONNECTIVITY_WAIT_SECS))
+        .unwrap();
     validator
-        .wait_for_connectivity(expected_to_connect, deadline)
+        .wait_for_connectivity(expected_to_connect, connectivity_deadline)
         .await
         .unwrap();
     info!("Validator restart connectivity check passed");
@@ -53,7 +67,7 @@ async fn wait_for_node(validator: &mut dyn Validator, expected_to_connect: usize
 /// 3. Test the nodes and clients resume working after updating waypoint
 /// 4. Test a node lagging behind can sync to the waypoint
 async fn test_genesis_transaction_flow() {
-    let db_bootstrapper = workspace_builder::get_bin("db-bootstrapper");
+    let db_bootstrapper = workspace_builder::get_bin("aptos-db-bootstrapper");
     let aptos_cli = workspace_builder::get_bin("aptos");
 
     // prebuild tools.
@@ -76,7 +90,7 @@ async fn test_genesis_transaction_flow() {
     update_node_config_restart(node, new_config.clone());
     wait_for_node(node, num_nodes - 1).await;
     // wait for some versions
-    env.wait_for_all_nodes_to_catchup_to_version(10, Duration::from_secs(10))
+    env.wait_for_all_nodes_to_catchup_to_version(10, Duration::from_secs(MAX_CATCH_UP_WAIT_SECS))
         .await
         .unwrap();
 
@@ -95,7 +109,7 @@ async fn test_genesis_transaction_flow() {
     node.start().unwrap();
 
     println!("4. verify all nodes are at the same round and no progress being made");
-    env.wait_for_all_nodes_to_catchup(Duration::from_secs(30))
+    env.wait_for_all_nodes_to_catchup(Duration::from_secs(MAX_CATCH_UP_WAIT_SECS))
         .await
         .unwrap();
 
@@ -132,6 +146,13 @@ async fn test_genesis_transaction_flow() {
     let genesis_blob_path = TempPath::new();
     genesis_blob_path.create_as_file().unwrap();
 
+    let framework_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("..")
+        .join("aptos-move")
+        .join("framework")
+        .join("aptos-framework");
+
     Command::new(aptos_cli.as_path())
         .current_dir(workspace_root())
         .args(&vec![
@@ -143,8 +164,8 @@ async fn test_genesis_transaction_flow() {
             CORE_CODE_ADDRESS.clone().to_hex().as_str(),
             "--script-path",
             move_script_path.as_path().to_str().unwrap(),
-            "--framework-git-rev",
-            "HEAD",
+            "--framework-local-dir",
+            framework_path.as_os_str().to_str().unwrap(),
             "--assume-yes",
         ])
         .output()
@@ -265,6 +286,6 @@ fn parse_waypoint(db_bootstrapper_output: &str) -> Waypoint {
     let waypoint = Regex::new(r"Got waypoint: (\d+:\w+)")
         .unwrap()
         .captures(db_bootstrapper_output)
-        .ok_or_else(|| anyhow!("Failed to parse db-bootstrapper output."));
+        .ok_or_else(|| anyhow!("Failed to parse aptos-db-bootstrapper output."));
     Waypoint::from_str(waypoint.unwrap()[1].into()).unwrap()
 }

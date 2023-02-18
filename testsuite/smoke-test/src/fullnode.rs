@@ -1,18 +1,16 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
-use std::time::{Duration, Instant};
-
+use crate::{
+    smoke_test_environment::new_local_swarm_with_aptos, test_utils::MAX_HEALTHY_WAIT_SECS,
+};
 use anyhow::bail;
+use aptos_cached_packages::aptos_stdlib;
 use aptos_config::config::NodeConfig;
+use aptos_forge::{NodeExt, Result, Swarm};
 use aptos_rest_client::Client as RestClient;
 use aptos_types::account_address::AccountAddress;
-use cached_packages::aptos_stdlib;
-use forge::NodeExt;
-use forge::Result;
-use forge::Swarm;
-
-use crate::smoke_test_environment::new_local_swarm_with_aptos;
+use std::time::{Duration, Instant};
 
 #[tokio::test]
 async fn test_indexer() {
@@ -33,7 +31,7 @@ async fn test_indexer() {
 
     let fullnode = swarm.full_node_mut(fullnode_peer_id).unwrap();
     fullnode
-        .wait_until_healthy(Instant::now() + Duration::from_secs(10))
+        .wait_until_healthy(Instant::now() + Duration::from_secs(MAX_HEALTHY_WAIT_SECS))
         .await
         .unwrap();
 

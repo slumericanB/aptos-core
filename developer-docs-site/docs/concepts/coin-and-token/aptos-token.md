@@ -7,8 +7,8 @@ import useBaseUrl from '@docusaurus/useBaseUrl';
 
 # Aptos Token
 
-:::tip Aptos token tutorial
-Also see the tutorial [Your First NFT](/tutorials/your-first-nft.md).
+:::tip Aptos Token standards compared
+Also see the [comparison of Aptos Token standards](./aptos-token-overview.md).
 :::
 
 
@@ -29,11 +29,11 @@ Additionally, most NFTs are part of a collection or a set of NFTs with a common 
 - `supply`: The total number of NFTs in this collection. 
 - `maximum`: The maximum number of NFTs that this collection can have. If `maximum` is set to 0, then supply is untracked. 
 
-## Token standard
+## Design principles
 
 The [Aptos token standard](https://github.com/aptos-labs/aptos-core/blob/main/aptos-move/framework/aptos-token/sources/token.move) is developed with the following principles:
 
-- **Interoperability**: Provide a standard implementation to improve interoperability across the ecosystem projects. Morever, Move being a static language without dynamic dispatch makes this principle even more imperative.
+- **Interoperability**: Provide a standard implementation to improve interoperability across the ecosystem projects. Moreover, Move being a static language without dynamic dispatch makes this principle even more imperative.
 - **Liquidity**: Achieve maximal liquidity by defining the NFT, fungible (non-decimal) and semi-fungible tokens in one contract. These different types of tokens can be easily stored, transferred and transacted in the same way. As a consequence, it becomes easier to achieve maximal interoperability across the marketplaces, exchanges, and other methods of exchange.
 - **Rich on-chain token properties**: Enable the customization of on-chain token properties. Users can define their own properties and store them on-chain. This can potentially eliminate the need for the off-chain metadata.
 - **Reduced overhead**: Reduce the cost of creating large amounts of NFTs from fungible tokens. This can lead to, for example, reduced overhead for similar tokens by the reuse of on-chain metadata for certain fungible tokens.
@@ -44,7 +44,19 @@ The Aptos token standard supports [mutation of a fungible token to an NFT](#evol
 
 ### Storing customized token properties on-chain
 
-In addition to the standard token attributes, the Aptos token standard provides the [`default_properties`](https://github.com/aptos-labs/aptos-core/blob/e62fd09cb1c916d857fa655b3f174991ef8698b3/aptos-move/framework/aptos-token/sources/token.move#L98) field, a key-value store with the type information to store customized properties on-chain. Use this field to customize the token properties and store them on-chain. These properties can be directly read and written by other smart contracts.
+The Aptos token standard provides an easy way to store properties on-chain and be used by [Aptos Names](https://www.aptosnames.com/) and other services. You can define your own properties based on your application. Each token can also have its own property values. These properties can be directly read and written by smart contracts.
+
+#### Default properties
+
+You can add your properties to [`default_properties`](https://github.com/aptos-labs/aptos-core/blob/e62fd09cb1c916d857fa655b3f174991ef8698b3/aptos-move/framework/aptos-token/sources/token.move#L98) in the TokenData. The properties defined here are shared by all tokens by default.
+
+The `default_properties` field is a key-value store with type information. It leverages the PropertyMap module which contain functions for serializing and deserializing different primitive types to the property value.
+
+#### Token properties
+
+You can also use the `token_properties` defined in the token itself for customization on-chain. You can create customized values for a property of this  specific token, thereby allowing a token to have a different property value from its default.
+
+Note that limits exist to storing customized token properties on-chain, namely 1000 properties per token with field names limited to 128 characters.
 
 ### Evolving from fungible token to NFT
 
@@ -132,38 +144,46 @@ If the file is no longer available, the wallet can fall back to use the `animati
 
 ## Token data model
 
+The [following diagram](/img/docs/aptos-token-standard-flow.svg) depicts the flow of token data through Aptos.
+
 <ThemedImage
 alt="Signed Transaction Flow"
 sources={{
-light: useBaseUrl('/img/docs/aptos-token-standard-flow-v1.png'),
-dark: useBaseUrl('/img/docs/aptos-token-standard-flow-v1.png'),
+light: useBaseUrl('/img/docs/aptos-token-standard-flow.svg'),
+dark: useBaseUrl('/img/docs/aptos-token-standard-flow-dark.svg'),
 }}
 />
 
 ## Token resources
 
-The token-related data are stored at both creator’s account and owner’s account.
+As shown in the diagram above, token-related data are stored at both the creator’s account and the owner’s account.
 
-### Resource stored at the creator’s address
+### Struct-level resources
+
+The following tables describe fields at the struct level. For the definitive list, see the [Move reference documentation](../../guides/move-guides/index.md#aptos-move-documentation) for the [Aptos Token Framework](https://github.com/aptos-labs/aptos-core/blob/main/aptos-move/framework/aptos-token/doc/overview.md).
+
+#### Resource stored at the creator’s address
 
 | Field | Description |
 | --- | --- |
-| `Collections` | Maintains a table called `collection_data`, which maps the collection name to the `CollectionData`. It also stores all the `TokenData` that this creator creates. |
-| `CollectionData` | Stores the collection metadata. The supply is the number of tokens created for the current collection. The maxium is the upper bound of tokens in this collection. |
-| `CollectionMutabilityConfig` | Specifies which field is mutable. |
-| `TokenData` | Acts as the main struct for holding the token metadata. Properties is a where users can add their own properties that are not defined in the token data. Users can mint more tokens based on the `TokenData`, and those tokens share the same `TokenData`. |
-| `TokenMutabilityConfig` | Control which fields are mutable. |
-| `TokenDataId` | An ID used for representing and querying `TokenData` on-chain. This ID mainly contains three fields including creator address, collection name and token name. |
-| Royalty | Specifies the denominator and numerator for calculating the royalty fee. It also has the payee account address for depositing the royalty. |
+| [`Collections`](https://github.com/aptos-labs/aptos-core/blob/main/aptos-move/framework/aptos-token/doc/token.md#resource-collections) | Maintains a table called `collection_data`, which maps the collection name to the `CollectionData`. It also stores all the `TokenData` that this creator creates. |
+| [`CollectionData`](https://github.com/aptos-labs/aptos-core/blob/main/aptos-move/framework/aptos-token/doc/token.md#struct-collectiondata) | Stores the collection metadata. The supply is the number of tokens created for the current collection. The maxium is the upper bound of tokens in this collection. |
+| [`CollectionMutabilityConfig`](https://github.com/aptos-labs/aptos-core/blob/main/aptos-move/framework/aptos-token/doc/token.md#0x3_token_CollectionMutabilityConfig) | Specifies which field is mutable. |
+| [`TokenData`](https://github.com/aptos-labs/aptos-core/blob/main/aptos-move/framework/aptos-token/doc/token.md#0x3_token_TokenData) | Acts as the main struct for holding the token metadata. Properties is a where users can add their own properties that are not defined in the token data. Users can mint more tokens based on the `TokenData`, and those tokens share the same `TokenData`. |
+| [`TokenMutabilityConfig`](https://github.com/aptos-labs/aptos-core/blob/main/aptos-move/framework/aptos-token/doc/token.md#0x3_token_TokenMutabilityConfig) | Controls which fields are mutable. |
+| [`TokenDataId`](https://github.com/aptos-labs/aptos-core/blob/main/aptos-move/framework/aptos-token/doc/token.md#0x3_token_TokenDataId) | An ID used for representing and querying `TokenData` on-chain. This ID mainly contains three fields including creator address, collection name and token name. |
+| [`Royalty`](https://github.com/aptos-labs/aptos-core/blob/main/aptos-move/framework/aptos-token/doc/token.md#0x3_token_Royalty) | Specifies the denominator and numerator for calculating the royalty fee. It also has the payee account address for depositing the royalty. |
 | `PropertyValue` | Contains both value of a property and type of property. |
 
-### Resource stored at the owner’s address
+#### Resource stored at the owner’s address
 
 | Field | Description |
 | --- | --- |
-| `TokenStore` | The main struct for storing the token owned by this address. It maps `TokenId` to the actual token. |
-| `Token` | The amount is the number of tokens. |
-| `TokenId` | `TokenDataId` points to the metadata of this token. The `property_version` represents a token with mutated `PropertyMap` from `default_properties` in the `TokenData`. |
+| [`TokenStore`](https://github.com/aptos-labs/aptos-core/blob/main/aptos-move/framework/aptos-token/doc/token.md#0x3_token_TokenStore) | The main struct for storing the token owned by this address. It maps `TokenId` to the actual token. |
+| [`Token`](https://github.com/aptos-labs/aptos-core/blob/main/aptos-move/framework/aptos-token/doc/token.md#0x3_token_Token) | The amount is the number of tokens. |
+| [`TokenId`](https://github.com/aptos-labs/aptos-core/blob/main/aptos-move/framework/aptos-token/doc/token.md#0x3_token_TokenId) | `TokenDataId` points to the metadata of this token. The `property_version` represents a token with mutated `PropertyMap` from `default_properties` in the `TokenData`. |
+
+For more detailed descriptions, see [Aptos Token Framework](https://github.com/aptos-labs/aptos-core/blob/main/aptos-move/framework/aptos-token/doc/overview.md).
 
 ## Token lifecycle
 
@@ -200,24 +220,29 @@ We provide `burn` and `burn_by_creator` functions for token owners and token cre
 Burn is allowed only when the `BURNABLE_BY_OWNER` property is set to `true` in `default_properties`. Burn by creator is allowed when `BURNABLE_BY_CREATOR` is `true` in `default_properties`.
 Once all the tokens belonging to a `TokenData` are burned, the `TokenData` will be removed from the creator’s account. Similarly, if all `TokenData` belonging to a collection are removed, the `CollectionData` will be removed from the creator’s account.
 
-## Token transfer
+### Token transfer
 
-To protect a user from receiving undesired NFTs, an Aptos user must be first offered an NFT, followed by the user claiming the offered NFTs. Then only these NFTs will be deposited in the user's token store. This is the default token transfer behavior. For example:
+We provide three different modes for transferring tokens between the sender and receiver.
 
-1. If Alice wants to send Bob an NFT, she must first offer Bob this NFT. This NFT is still stored under Alice’s account. 
-1. Only when Bob claims the NFT, this NFT will be removed from Alice’s account and stored in Bob’s token store. 
+#### Two-step transfer
+
+To protect users from receiving undesired NFTs, they must be first offered NFTs, and then accept the offered NFTs. Then only the offered NFTs will be deposited in the users' token stores. This is the default token transfer behavior. For example:
+1. If Alice wants to send Bob an NFT, she must first offer Bob this NFT. This NFT is still stored under Alice’s account.
+2. Only when Bob claims the NFT, will the NFT be removed from Alice’s account and stored in Bob’s token store.
 
 :::tip Token transfer module
-The token transfer is implemented in the [`token_transfers`](https://github.com/aptos-labs/aptos-core/blob/main/aptos-move/framework/aptos-token/sources/token_transfers.move) module. 
+The token transfer is implemented in the [`token_transfers`](https://github.com/aptos-labs/aptos-core/blob/main/aptos-move/framework/aptos-token/sources/token_transfers.move) module.
 :::
 
-### Direct transfer
+#### Transfer with opt-in
 
-On the other hand, if a user wants to receive direct transfer of the NFT, skipping the initial steps of offer and claim, then the user can call [`opt_in_direct_transfer`](https://github.com/aptos-labs/aptos-core/blob/283348c6ea4ce198fb27eb3ef1c1e471739aa1aa/aptos-move/framework/aptos-token/sources/token.move#L297) to allow other people to directly transfer the NFTs into the user's token store.  
-
-Note that in both the default token transfer and the direct transfer method, the user will receive the NFT into the user's token store. 
+If a user wants to receive direct transfer of the NFT, skipping the initial steps of offer and claim, then the user can call [`opt_in_direct_transfer`](https://github.com/aptos-labs/aptos-core/blob/main/aptos-move/framework/aptos-token/doc/token.md#0x3_token_opt_in_direct_transfer) to allow other people to directly transfer the NFTs into the user's token store. After opting into direct transfer, the user can call [`transfer`](https://github.com/aptos-labs/aptos-core/blob/main/aptos-move/framework/aptos-token/doc/token.md#0x3_token_transfer) to transfer tokens directly. For example, Alice and anyone can directly send a token to Bob's token store once Bob opts in.
 
 :::tip Turning off direct transfer
-The user can also turn off this direct transfer behavior by calling the same `opt_in_direct_transfer` function to reset the behavior to the default behavior. 
+The user can also turn off this direct transfer behavior by calling the same `opt_in_direct_transfer` function to reset to the default behavior.
 :::
+
+#### Multi-agent transfer
+
+The sender and receiver can both sign a transfer transaction to directly transfer a token from the sender to receiver [`direct_transfer_script`](https://github.com/aptos-labs/aptos-core/blob/main/aptos-move/framework/aptos-token/doc/token.md#function-direct_transfer_script). For example, once Alice and Bob both sign the transfer transaction, the token will be directly transferred from Alice's account to Bob.
 

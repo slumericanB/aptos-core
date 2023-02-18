@@ -1,4 +1,4 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::Client;
@@ -17,7 +17,7 @@ static APTOS_VAULT: Lazy<Option<VaultRunner>> = Lazy::new(|| match VaultRunner::
         );
         println!("Vault is not running: {}", err);
         None
-    }
+    },
     Ok(vr) => Some(vr),
 });
 

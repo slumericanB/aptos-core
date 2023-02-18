@@ -1,4 +1,4 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 use aptos_config::config::ApiConfig;
@@ -45,7 +45,7 @@ impl WebServer {
                     .key_path(self.tls_key_path.as_ref().unwrap())
                     .bind(self.address)
                     .await
-            }
+            },
         }
     }
 }

@@ -1,13 +1,12 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
-
-use std::time::Duration;
 
 use aptos_logger::{
     debug, error,
     prelude::{sample, SampleRate},
     Schema,
 };
+use std::time::Duration;
 use warp::{
     http::header,
     log::{custom, Info, Log},

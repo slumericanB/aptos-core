@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (c) Aptos
+# Copyright © Aptos Foundation
 # SPDX-License-Identifier: Apache-2.0
 # This script sets up the environment for the build by installing necessary dependencies.
 #
@@ -20,7 +20,7 @@ KUBECTL_VERSION=1.18.6
 TERRAFORM_VERSION=0.12.26
 HELM_VERSION=3.2.4
 VAULT_VERSION=1.5.0
-Z3_VERSION=4.11.0
+Z3_VERSION=4.11.2
 CVC5_VERSION=0.0.3
 DOTNET_VERSION=6.0
 BOOGIE_VERSION=2.15.8
@@ -407,6 +407,18 @@ function install_toolchain {
   fi
 }
 
+function install_rustup_components_and_nightly {
+    echo "Updating rustup and installing rustfmt & clippy"
+    rustup update
+    rustup component add rustfmt
+    rustup component add clippy
+
+    # We require nightly for strict rust formatting
+    echo "Installing the nightly toolchain and rustfmt nightly"
+    rustup toolchain install nightly
+    rustup component add rustfmt --toolchain nightly
+}
+
 function install_cargo_sort {
   if ! command -v cargo-sort &> /dev/null; then
     cargo install cargo-sort --locked
@@ -613,6 +625,10 @@ function install_nodejs {
     fi
     install_pkg nodejs "$PACKAGE_MANAGER"
     install_pkg npm "$PACKAGE_MANAGER"
+}
+
+function install_pnpm {
+    curl -fsSL https://get.pnpm.io/install.sh | "${PRE_COMMAND[@]}" env PNPM_VERSION=7.14.2 SHELL="$(which bash)" bash -
 }
 
 function install_python3 {
@@ -879,9 +895,7 @@ if [[ "$INSTALL_BUILD_TOOLS" == "true" ]]; then
 
   install_rustup "$BATCH_MODE"
   install_toolchain "$(cat ./rust-toolchain)"
-  # Add all the components that we need
-  rustup component add rustfmt
-  rustup component add clippy
+  install_rustup_components_and_nightly
 
   install_cargo_sort
   install_cargo_nextest
@@ -890,6 +904,7 @@ if [[ "$INSTALL_BUILD_TOOLS" == "true" ]]; then
   install_pkg git "$PACKAGE_MANAGER"
   install_lcov "$PACKAGE_MANAGER"
   install_nodejs "$PACKAGE_MANAGER"
+  install_pnpm "$PACKAGE_MANAGER"
   install_pkg unzip "$PACKAGE_MANAGER"
   install_protoc
 fi

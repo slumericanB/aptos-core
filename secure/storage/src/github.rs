@@ -1,4 +1,4 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{CryptoKVStorage, Error, GetResponse, KVStorage};
@@ -33,7 +33,7 @@ impl KVStorage for GitHubStorage {
 
     fn get<T: DeserializeOwned>(&self, key: &str) -> Result<GetResponse<T>, Error> {
         let data = self.client.get_file(key)?;
-        let data = base64::decode(&data)?;
+        let data = base64::decode(data)?;
         let data = std::str::from_utf8(&data).map_err(|e| {
             Error::InternalError(format!(
                 "Unparseable data: {:?}\n returned from Github KV Storage, met Error:{}",
@@ -47,7 +47,7 @@ impl KVStorage for GitHubStorage {
         let now = self.time_service.now_secs();
         let data = GetResponse::new(value, now);
         let data = serde_json::to_string(&data)?;
-        let data = base64::encode(&data);
+        let data = base64::encode(data);
         self.client.put(key, &data)?;
         Ok(())
     }

@@ -1,12 +1,11 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::liveness::{
     proposer_election::ProposerElection, round_proposer_election::RoundProposer,
 };
+use aptos_consensus_types::common::{Author, Round};
 use aptos_types::account_address::AccountAddress;
-
-use consensus_types::common::{Author, Round};
 use std::collections::HashMap;
 
 #[test]

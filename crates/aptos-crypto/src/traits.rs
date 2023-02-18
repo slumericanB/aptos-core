@@ -1,4 +1,4 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 //! This module provides a generic set of traits for dealing with cryptographic primitives.
@@ -86,7 +86,7 @@ pub trait ValidCryptoMaterialStringExt: ValidCryptoMaterial {
 
     /// A function to encode into hex-string after serializing.
     fn to_encoded_string(&self) -> Result<String> {
-        Ok(format!("0x{}", ::hex::encode(&self.to_bytes())))
+        Ok(format!("0x{}", ::hex::encode(self.to_bytes())))
     }
 }
 

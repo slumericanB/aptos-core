@@ -1,4 +1,4 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 use crate::{
     database::{execute_with_better_error, PgDbPool},
@@ -89,7 +89,7 @@ impl Tailer {
                     "Chain id matches! Continue to index...",
                 );
                 Ok(chain_id as u64)
-            }
+            },
             None => {
                 info!(
                     processor_name = self.processor.name(),
@@ -105,7 +105,7 @@ impl Tailer {
                 )
                 .context(r#"Error updating chain_id!"#)
                 .map(|_| new_chain_id as u64)
-            }
+            },
         }
     }
 
@@ -120,7 +120,10 @@ impl Tailer {
 
     pub async fn process_next_batch(
         &self,
-    ) -> (u64, Result<ProcessingResult, TransactionProcessingError>) {
+    ) -> (
+        u64,
+        Option<Result<ProcessingResult, TransactionProcessingError>>,
+    ) {
         let transactions = self
             .transaction_fetcher
             .lock()
@@ -129,6 +132,10 @@ impl Tailer {
             .await;
 
         let num_txns = transactions.len() as u64;
+        // When the batch is empty b/c we're caught up
+        if num_txns == 0 {
+            return (0, None);
+        }
         let start_version = transactions.first().unwrap().version();
         let end_version = transactions.last().unwrap().version();
 
@@ -156,7 +163,7 @@ impl Tailer {
             "Finished processing of transaction batch"
         );
 
-        (num_txns, results)
+        (num_txns, Some(results))
     }
 
     /// Store last processed version from database. We can assume that all previously processed
@@ -290,7 +297,7 @@ pub async fn await_tasks<T: Debug>(tasks: Vec<JoinHandle<T>>) -> Vec<T> {
             Ok(_) => results.push(result.unwrap()),
             Err(err) => {
                 panic!("Error joining task: {:?}", err);
-            }
+            },
         }
     }
     results

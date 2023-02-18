@@ -1,4 +1,4 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 //! This provides a execution separation between SafetyRules and Consensus without requiring the
@@ -45,6 +45,7 @@ impl RemoteService for ThreadService {
     fn server_address(&self) -> SocketAddr {
         self.server_addr
     }
+
     fn network_timeout_ms(&self) -> u64 {
         self.network_timeout
     }

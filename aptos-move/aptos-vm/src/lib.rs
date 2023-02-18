@@ -1,4 +1,4 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 #![forbid(unsafe_code)]
@@ -111,29 +111,24 @@ pub mod foreign_contracts;
 mod adapter_common;
 pub mod aptos_vm;
 mod aptos_vm_impl;
+pub mod block_executor;
 mod delta_state_view;
 mod errors;
 pub mod logging;
 pub mod move_vm_ext;
 pub mod natives;
-pub mod parallel_executor;
 pub mod read_write_set_analysis;
 pub mod system_module_names;
-mod transaction_arg_validation;
 pub mod transaction_metadata;
+mod verifier;
 
 pub use crate::aptos_vm::AptosVM;
-
 use aptos_state_view::StateView;
 use aptos_types::{
-    access_path::AccessPath,
     transaction::{SignedTransaction, Transaction, TransactionOutput, VMValidatorResult},
     vm_status::VMStatus,
 };
-use move_core_types::{
-    account_address::AccountAddress,
-    language_storage::{ResourceKey, StructTag},
-};
+use std::marker::Sync;
 
 /// This trait describes the VM's validation interfaces.
 pub trait VMValidator {
@@ -155,12 +150,6 @@ pub trait VMExecutor: Send + Sync {
     /// Executes a block of transactions and returns output for each one of them.
     fn execute_block(
         transactions: Vec<Transaction>,
-        state_view: &impl StateView,
+        state_view: &(impl StateView + Sync),
     ) -> Result<Vec<TransactionOutput>, VMStatus>;
-}
-
-/// Get the AccessPath to a resource stored under `address` with type name `tag`
-fn create_access_path(address: AccountAddress, tag: StructTag) -> AccessPath {
-    let resource_tag = ResourceKey::new(address, tag);
-    AccessPath::resource_access_path(resource_tag)
 }

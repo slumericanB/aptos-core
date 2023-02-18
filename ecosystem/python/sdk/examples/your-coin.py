@@ -1,4 +1,4 @@
-# Copyright (c) Aptos
+# Copyright © Aptos Foundation
 # SPDX-License-Identifier: Apache-2.0
 
 """
@@ -18,11 +18,8 @@ from aptos_sdk.account import Account
 from aptos_sdk.account_address import AccountAddress
 from aptos_sdk.bcs import Serializer
 from aptos_sdk.client import FaucetClient, RestClient
-from aptos_sdk.transactions import (
-    EntryFunction,
-    TransactionArgument,
-    TransactionPayload,
-)
+from aptos_sdk.transactions import (EntryFunction, TransactionArgument,
+                                    TransactionPayload)
 from aptos_sdk.type_tag import StructTag, TypeTag
 
 from .common import FAUCET_URL, NODE_URL
@@ -96,7 +93,7 @@ if __name__ == "__main__":
 
     input("\nUpdate the module with Alice's address, compile, and press enter.")
 
-    #:!:>publish
+    # :!:>publish
     moon_coin_path = sys.argv[1]
     module_path = os.path.join(
         moon_coin_path, "build", "Examples", "bytecode_modules", "moon_coin.mv"

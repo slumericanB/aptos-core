@@ -1,4 +1,4 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::vm_validator::TransactionValidation;
@@ -42,6 +42,7 @@ impl VMValidator for MockVMValidator {
 
 impl TransactionValidation for MockVMValidator {
     type ValidationInstance = MockVMValidator;
+
     fn validate_transaction(&self, txn: SignedTransaction) -> Result<VMValidatorResult> {
         let txn = match txn.check_signature() {
             Ok(txn) => txn,
@@ -50,7 +51,7 @@ impl TransactionValidation for MockVMValidator {
                     Some(StatusCode::INVALID_SIGNATURE),
                     0,
                 ))
-            }
+            },
         };
 
         let sender = txn.sender();
@@ -75,7 +76,7 @@ impl TransactionValidation for MockVMValidator {
     }
 
     fn restart(&mut self, _config: OnChainConfigPayload) -> Result<()> {
-        unimplemented!();
+        Ok(())
     }
 
     fn notify_commit(&mut self) {}

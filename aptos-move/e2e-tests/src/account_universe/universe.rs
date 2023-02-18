@@ -1,4 +1,4 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 //! Logic for account universes. This is not in the parent module to enforce privacy.
@@ -181,7 +181,7 @@ impl AccountPicker {
             AccountPickStyle::Limited(limit) => {
                 let remaining = (0..num_accounts).map(|idx| (idx, limit)).collect();
                 AccountPicker::Limited(remaining)
-            }
+            },
         }
     }
 
@@ -191,7 +191,7 @@ impl AccountPicker {
             AccountPicker::Limited(remaining) => {
                 let remaining_idx = index.index(remaining.len());
                 Self::pick_limited(remaining, remaining_idx)
-            }
+            },
         }
     }
 
@@ -206,7 +206,7 @@ impl AccountPicker {
                 let account_idx_1 = Self::pick_limited(remaining, remaining_idx_1);
 
                 [account_idx_1, account_idx_2]
-            }
+            },
         }
     }
 

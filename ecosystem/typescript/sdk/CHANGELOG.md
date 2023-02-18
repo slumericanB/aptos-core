@@ -6,7 +6,37 @@ All notable changes to the Aptos Node SDK will be captured in this file. This ch
 
 ## Unreleased
 
-N/A
+## 1.6.0 (2023-01-20)
+
+- Add support to Move view functions
+
+## 1.5.0 (2023-01-05)
+
+- Export classes from property_map_serde
+- User can specify token string property type using "string", "String" or "0x1::string::String" to serde the string token property on-chain
+- Use `getAccountResource` to replace `getAccountResources` in `CoinClient#checkBalance`, which can reduce network load.
+
+## 1.4.0 (2022-11-30)
+
+- Add missing fields to TokenData class
+- Add PropertyMap and PropertyValue type to match on-chain data
+- Support token property map deseralizer to read the property map in the original data format.
+- Allow `checkBalance` in `CoinClient` to take in a `MaybeHexString` as well as `AptosAccount`, since users might want to check the balance of accounts they don't own (which is generally how you use `AptosAccount`).
+- Similar to `checkBalance`, allow `transfer` in `CoinClient` to take in a `MaybeHexString` for the `receiver` argument.
+- Add a new `createReceiverIfMissing` argument to `transfer` in `CoinClient`. If set, the `0x1::aptos_account::transfer` function will be called instead of `0x1::coin::transfer`, which will create the account on chain if it doesn't exist instead of failing.
+
+## 1.3.17 (2022-11-08)
+
+- Support computing resource account address based off a source address and a seed
+- Exported ABI types
+- `getAccountModules` and `getAccountResources` now use pagination under the hood. This addresses the issue raised here: https://github.com/aptos-labs/aptos-core/issues/5298. The changes are non-breaking, if you use these functions with an older node that hasn't updated to include the relevant support in its API service, it will still work as it did before.
+- To support the above, the generated client has been updated to attach the headers to the response object, as per the changes here: https://github.com/aptos-labs/openapi-typescript-codegen/compare/v0.23.0...aptos-labs:openapi-typescript-codegen:0.24.0?expand=1. Consider this an implementation detail, not a supported part of the SDK interface.
+- Add functions to token client support
+  - direct transfer with opt-in
+  - burn token by owner
+  - burn token by creator
+  - mutate token properties
+- Add property map serializer to serialize input to BCS encode
 
 ## 1.3.16 (2022-10-12)
 

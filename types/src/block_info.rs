@@ -1,4 +1,4 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{epoch_state::EpochState, on_chain_config::ValidatorSet, transaction::Version};
@@ -187,7 +187,7 @@ impl BlockInfo {
     /// and it is not empty
     pub fn is_ordered_only(&self) -> bool {
         *self != BlockInfo::empty()
-            && self.next_epoch_state == None
+            && self.next_epoch_state.is_none()
             && self.executed_state_id == *ACCUMULATOR_PLACEHOLDER_HASH
             && self.version == 0
     }

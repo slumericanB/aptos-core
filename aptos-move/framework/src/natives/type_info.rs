@@ -1,6 +1,7 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
+use crate::natives::transaction_context::NativeTransactionContext;
 use move_binary_format::errors::PartialVMResult;
 use move_core_types::{
     gas_algebra::{InternalGas, InternalGasPerByte, NumBytes},
@@ -12,7 +13,6 @@ use move_vm_types::{
     natives::function::NativeResult,
     values::{Struct, Value},
 };
-
 use smallvec::{smallvec, SmallVec};
 use std::{collections::VecDeque, fmt::Write, sync::Arc};
 
@@ -110,16 +110,49 @@ fn native_type_name(
 
     let cost = gas_params.base + gas_params.per_byte_in_str * NumBytes::new(type_name.len() as u64);
 
-    Ok(NativeResult::ok(
-        cost,
-        smallvec![Value::struct_(Struct::pack(vec![Value::vector_u8(
-            type_name.as_bytes().to_vec()
-        )]))],
-    ))
+    Ok(NativeResult::ok(cost, smallvec![Value::struct_(
+        Struct::pack(vec![Value::vector_u8(type_name.as_bytes().to_vec())])
+    )]))
 }
 
 pub fn make_native_type_name(gas_params: TypeNameGasParameters) -> NativeFunction {
     Arc::new(move |context, ty_args, args| native_type_name(&gas_params, context, ty_args, args))
+}
+
+/***************************************************************************************************
+ * native fun chain_id
+ *
+ *   Returns the chain ID
+ *
+ *   gas cost: base_cost
+ *
+ **************************************************************************************************/
+#[derive(Debug, Clone)]
+pub struct ChainIdGasParameters {
+    pub base: InternalGas,
+}
+
+fn native_chain_id(
+    gas_params: &ChainIdGasParameters,
+    context: &mut NativeContext,
+    _ty_args: Vec<Type>,
+    arguments: VecDeque<Value>,
+) -> PartialVMResult<NativeResult> {
+    debug_assert!(_ty_args.is_empty());
+    debug_assert!(arguments.is_empty());
+
+    let cost = gas_params.base;
+
+    let chain_id = context
+        .extensions()
+        .get::<NativeTransactionContext>()
+        .chain_id();
+
+    Ok(NativeResult::ok(cost, smallvec![Value::u8(chain_id)]))
+}
+
+fn make_native_chain_id(gas_params: ChainIdGasParameters) -> NativeFunction {
+    Arc::new(move |context, ty_args, args| native_chain_id(&gas_params, context, ty_args, args))
 }
 
 /***************************************************************************************************
@@ -130,12 +163,17 @@ pub fn make_native_type_name(gas_params: TypeNameGasParameters) -> NativeFunctio
 pub struct GasParameters {
     pub type_of: TypeOfGasParameters,
     pub type_name: TypeNameGasParameters,
+    pub chain_id: ChainIdGasParameters,
 }
 
 pub fn make_all(gas_params: GasParameters) -> impl Iterator<Item = (String, NativeFunction)> {
     let natives = [
         ("type_of", make_native_type_of(gas_params.type_of)),
         ("type_name", make_native_type_name(gas_params.type_name)),
+        (
+            "chain_id_internal",
+            make_native_chain_id(gas_params.chain_id),
+        ),
     ];
 
     crate::natives::helpers::make_module_natives(natives)

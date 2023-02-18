@@ -1,63 +1,68 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 pub mod analyze;
 
-use crate::common::types::{
-    ConfigSearchMode, OptionalPoolAddressArgs, PoolAddressArgs, PromptOptions, TransactionSummary,
-};
-use crate::common::utils::prompt_yes_with_override;
-use crate::config::GlobalConfig;
-use crate::node::analyze::analyze_validators::{AnalyzeValidators, ValidatorStats};
-use crate::node::analyze::fetch_metadata::FetchMetadata;
 use crate::{
     common::{
         types::{
-            CliCommand, CliError, CliResult, CliTypedResult, ProfileOptions, RestOptions,
-            TransactionOptions,
+            CliCommand, CliError, CliResult, CliTypedResult, ConfigSearchMode,
+            OptionalPoolAddressArgs, PoolAddressArgs, ProfileOptions, PromptOptions, RestOptions,
+            TransactionOptions, TransactionSummary,
         },
-        utils::read_from_file,
+        utils::{prompt_yes_with_override, read_from_file},
     },
+    config::GlobalConfig,
     genesis::git::from_yaml,
+    node::analyze::{
+        analyze_validators::{AnalyzeValidators, ValidatorStats},
+        fetch_metadata::FetchMetadata,
+    },
 };
+use aptos_backup_cli::{
+    coordinators::restore::{RestoreCoordinator, RestoreCoordinatorOpt},
+    metadata::cache::MetadataCacheOpt,
+    storage::command_adapter::{config::CommandAdapterConfig, CommandAdapter},
+    utils::{ConcurrentDownloadsOpt, GlobalRestoreOpt, ReplayConcurrencyLevelOpt, RocksdbOpt},
+};
+use aptos_cached_packages::aptos_stdlib;
 use aptos_config::config::NodeConfig;
-use aptos_crypto::bls12381::PublicKey;
-use aptos_crypto::{bls12381, x25519, ValidCryptoMaterialStringExt};
+use aptos_crypto::{bls12381, bls12381::PublicKey, x25519, ValidCryptoMaterialStringExt};
 use aptos_faucet::FaucetArgs;
 use aptos_genesis::config::{HostAndPort, OperatorConfiguration};
-use aptos_rest_client::aptos_api_types::VersionedEvent;
-use aptos_rest_client::{Client, State};
-use aptos_types::account_config::BlockResource;
-use aptos_types::chain_id::ChainId;
-use aptos_types::network_address::NetworkAddress;
-use aptos_types::on_chain_config::{ConfigurationResource, ConsensusScheme, ValidatorSet};
-use aptos_types::stake_pool::StakePool;
-use aptos_types::staking_contract::StakingContractStore;
-use aptos_types::validator_info::ValidatorInfo;
-use aptos_types::validator_performances::ValidatorPerformances;
-use aptos_types::vesting::VestingAdminStore;
-use aptos_types::{account_address::AccountAddress, account_config::CORE_CODE_ADDRESS};
-use async_trait::async_trait;
-use backup_cli::coordinators::restore::{RestoreCoordinator, RestoreCoordinatorOpt};
-use backup_cli::metadata::cache::MetadataCacheOpt;
-use backup_cli::storage::command_adapter::{config::CommandAdapterConfig, CommandAdapter};
-use backup_cli::utils::{
-    ConcurrentDownloadsOpt, GlobalRestoreOpt, ReplayConcurrencyLevelOpt, RocksdbOpt,
+use aptos_network_checker::args::{
+    validate_address, CheckEndpointArgs, HandshakeArgs, NodeAddressArgs,
 };
+use aptos_rest_client::{aptos_api_types::VersionedEvent, Client, State};
+use aptos_types::{
+    account_address::AccountAddress,
+    account_config::{BlockResource, CORE_CODE_ADDRESS},
+    chain_id::ChainId,
+    network_address::NetworkAddress,
+    on_chain_config::{ConfigurationResource, ConsensusScheme, ValidatorSet},
+    stake_pool::StakePool,
+    staking_contract::StakingContractStore,
+    validator_info::ValidatorInfo,
+    validator_performances::ValidatorPerformances,
+    vesting::VestingAdminStore,
+};
+use async_trait::async_trait;
 use bcs::Result;
-use cached_packages::aptos_stdlib;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use clap::Parser;
 use hex::FromHex;
-use rand::rngs::StdRng;
-use rand::SeedableRng;
+use rand::{rngs::StdRng, SeedableRng};
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::convert::{TryFrom, TryInto};
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
-use std::{path::PathBuf, thread, time::Duration};
+use std::{
+    collections::HashMap,
+    convert::{TryFrom, TryInto},
+    path::PathBuf,
+    pin::Pin,
+    sync::Arc,
+    thread,
+    time::Duration,
+};
 use tokio::time::Instant;
 
 const SECS_TO_MICROSECS: u64 = 1_000_000;
@@ -68,6 +73,7 @@ const SECS_TO_MICROSECS: u64 = 1_000_000;
 /// identify issues with nodes, and show related information.
 #[derive(Parser)]
 pub enum NodeTool {
+    CheckNetworkConnectivity(CheckNetworkConnectivity),
     GetPerformance(GetPerformance),
     GetStakePool(GetStakePool),
     InitializeValidator(InitializeValidator),
@@ -88,6 +94,7 @@ impl NodeTool {
     pub async fn execute(self) -> CliResult {
         use NodeTool::*;
         match self {
+            CheckNetworkConnectivity(tool) => tool.execute_serialized().await,
             GetPerformance(tool) => tool.execute_serialized().await,
             GetStakePool(tool) => tool.execute_serialized().await,
             InitializeValidator(tool) => tool.execute_serialized().await,
@@ -624,7 +631,7 @@ impl CliCommand<TransactionSummary> for InitializeValidator {
                         "If specifying fullnode addresses, both host and public key are required."
                             .to_string(),
                     ))
-                }
+                },
             };
 
         self.txn_options
@@ -1107,20 +1114,20 @@ impl CliCommand<()> for RunLocalTestnet {
         // Spawn the node in a separate thread
         let config_path = self.config_path.clone();
         let test_dir_copy = test_dir.clone();
-        let _node = thread::spawn(move || {
-            aptos_node::load_test_environment(
+        let node_thread_handle = thread::spawn(move || {
+            let result = aptos_node::setup_test_environment_and_start_node(
                 config_path,
                 Some(test_dir_copy),
                 false,
                 false,
-                cached_packages::head_release_bundle(),
+                aptos_cached_packages::head_release_bundle(),
                 rng,
-            )
-            .map_err(|err| CliError::UnexpectedError(format!("Node failed to run {}", err)))
+            );
+            eprintln!("Node stopped unexpectedly {:#?}", result);
         });
 
         // Run faucet if selected
-        let _maybe_faucet = if self.with_faucet {
+        let maybe_faucet_future = if self.with_faucet {
             let max_wait = Duration::from_secs(MAX_WAIT_S);
             let wait_interval = Duration::from_millis(WAIT_INTERVAL_MS);
 
@@ -1170,30 +1177,48 @@ impl CliCommand<()> for RunLocalTestnet {
             }
 
             // Start the faucet
-            FaucetArgs {
-                address: "0.0.0.0".to_string(),
-                port: self.faucet_port,
-                server_url: rest_url,
-                mint_key_file_path: test_dir.join("mint.key"),
-                mint_key: None,
-                mint_account_address: None,
-                chain_id: ChainId::test(),
-                maximum_amount: None,
-                do_not_delegate: self.do_not_delegate,
-            }
-            .run()
-            .await;
-            Some(())
+            Some(
+                FaucetArgs {
+                    address: "0.0.0.0".to_string(),
+                    port: self.faucet_port,
+                    server_url: rest_url,
+                    mint_key_file_path: test_dir.join("mint.key"),
+                    mint_key: None,
+                    mint_account_address: None,
+                    chain_id: ChainId::test(),
+                    maximum_amount: None,
+                    do_not_delegate: self.do_not_delegate,
+                }
+                .run(),
+            )
         } else {
             None
         };
 
-        // Wait for an interrupt
-        let term = Arc::new(AtomicBool::new(false));
-        while !term.load(Ordering::Acquire) {
-            std::thread::park();
+        // Collect futures that should never end.
+        let mut futures: Vec<Pin<Box<dyn futures::Future<Output = ()> + Send>>> = Vec::new();
+
+        // This future just waits for the node thread.
+        let node_future = async move {
+            loop {
+                if node_thread_handle.is_finished() {
+                    return;
+                }
+                tokio::time::sleep(Duration::from_millis(500)).await;
+            }
+        };
+
+        // Wait for all the futures. We should never get past this point unless
+        // something goes wrong or the user signals for the process to end.
+        futures.push(Box::pin(node_future));
+        if let Some(faucet_future) = maybe_faucet_future {
+            futures.push(Box::pin(faucet_future));
         }
-        Ok(())
+        futures::future::select_all(futures).await;
+
+        Err(CliError::UnexpectedError(
+            "One of the components stopped unexpectedly".to_string(),
+        ))
     }
 }
 
@@ -1283,7 +1308,7 @@ impl CliCommand<TransactionSummary> for UpdateValidatorNetworkAddresses {
                         "If specifying fullnode addresses, both host and public key are required."
                             .to_string(),
                     ))
-                }
+                },
             };
 
         self.txn_options
@@ -1402,11 +1427,7 @@ impl CliCommand<()> for AnalyzeValidatorPerformance {
             println!("No data found for given input");
             return Ok(());
         }
-        let total_stats = stats
-            .iter()
-            .map(|(_k, v)| v.clone())
-            .reduce(|a, b| a + b)
-            .unwrap();
+        let total_stats = stats.values().cloned().reduce(|a, b| a + b).unwrap();
         if print_detailed {
             println!(
                 "Detailed table for all epochs [{}, {}]:",
@@ -1510,6 +1531,54 @@ impl CliCommand<()> for BootstrapDbFromBackup {
     }
 }
 
+/// Checks the network connectivity of a node
+///
+/// Checks network connectivity by dialing the node and attempting
+/// to establish a connection with a noise handshake.
+#[derive(Parser)]
+pub struct CheckNetworkConnectivity {
+    /// `NetworkAddress` of remote server interface.
+    /// Examples include:
+    /// - `/dns/example.com/tcp/6180/noise-ik/<x25519-pubkey>/handshake/1`
+    /// - `/ip4/<ip-address>/tcp/6182/noise-ik/<x25519-pubkey>/handshake/0`
+    #[clap(long, value_parser = validate_address)]
+    pub address: NetworkAddress,
+
+    /// `ChainId` of remote server.
+    /// Examples include:
+    /// - Chain numbers, e.g., `2`, `3` and `25`.
+    /// - Chain names, e.g., `devnet`, `testnet`, `mainnet` and `testing` (for local test networks).
+    #[clap(long)]
+    pub chain_id: ChainId,
+
+    #[clap(flatten)]
+    pub handshake_args: HandshakeArgs,
+}
+
+#[async_trait]
+impl CliCommand<String> for CheckNetworkConnectivity {
+    fn command_name(&self) -> &'static str {
+        "CheckNetworkConnectivity"
+    }
+
+    async fn execute(self) -> CliTypedResult<String> {
+        // Create the check endpoint args for the checker
+        let node_address_args = NodeAddressArgs {
+            address: self.address,
+            chain_id: self.chain_id,
+        };
+        let check_endpoint_args = CheckEndpointArgs {
+            node_address_args,
+            handshake_args: self.handshake_args,
+        };
+
+        // Check the endpoint
+        aptos_network_checker::check_endpoint(&check_endpoint_args, None)
+            .await
+            .map_err(|error| CliError::UnexpectedError(error.to_string()))
+    }
+}
+
 /// Show Epoch information
 ///
 /// Displays the current epoch, the epoch length, and the estimated time of the next epoch
@@ -1574,7 +1643,8 @@ pub struct Time {
 
 impl Time {
     pub fn new(time: Duration) -> Self {
-        let date_time = NaiveDateTime::from_timestamp(time.as_secs() as i64, time.subsec_nanos());
+        let date_time =
+            NaiveDateTime::from_timestamp_opt(time.as_secs() as i64, time.subsec_nanos()).unwrap();
         let utc_time = DateTime::from_utc(date_time, Utc);
         // TODO: Allow configurable time zone
         Self {
@@ -1589,5 +1659,59 @@ impl Time {
 
     pub fn new_seconds(seconds: u64) -> Self {
         Self::new(Duration::from_secs(seconds))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{CliResult, Tool};
+    use clap::Parser;
+
+    // TODO: there have to be cleaner ways to test things. Maybe a CLI test framework?
+
+    #[tokio::test]
+    // Verifies basic properties about the network connectivity checker
+    async fn test_check_network_connectivity() {
+        // Verify the help function works
+        let args = &["aptos", "node", "check-network-connectivity", "--help"];
+        let help_message = run_tool_with_args(args).await.unwrap_err();
+        assert_contains(help_message, "USAGE:"); // We expect the command to return USAGE info
+
+        // Verify that an invalid address will return an error
+        let args = &[
+            "aptos",
+            "node",
+            "check-network-connectivity",
+            "--address",
+            "invalid-address",
+            "--chain-id",
+            "mainnet",
+        ];
+        let error_message = run_tool_with_args(args).await.unwrap_err();
+        assert_contains(error_message, "Invalid address");
+
+        // Verify that an invalid chain-id will return an error
+        let args = &["aptos", "node", "check-network-connectivity", "--address", "/ip4/34.70.116.169/tcp/6182/noise-ik/0x249f3301db104705652e0a0c471b46d13172b2baf14e31f007413f3baee46b0c/handshake/0", "--chain-id", "invalid-chain"];
+        let error_message = run_tool_with_args(args).await.unwrap_err();
+        assert_contains(error_message, "Invalid value");
+
+        // Verify that a failure to connect will return a timeout
+        let args = &["aptos", "node", "check-network-connectivity", "--address", "/ip4/31.71.116.169/tcp/0001/noise-ik/0x249f3301db104705652e0a0c471b46d13172b2baf14e31f007413f3baee46b0c/handshake/0", "--chain-id", "testnet"];
+        let error_message = run_tool_with_args(args).await.unwrap_err();
+        assert_contains(error_message, "Timed out while checking endpoint");
+    }
+
+    async fn run_tool_with_args(args: &[&str]) -> CliResult {
+        let tool: Tool = Tool::try_parse_from(args).map_err(|msg| msg.to_string())?;
+        tool.execute().await
+    }
+
+    fn assert_contains(message: String, expected_string: &str) {
+        if !message.contains(expected_string) {
+            panic!(
+                "Expected message to contain {:?}, but it did not! Message: {:?}",
+                expected_string, message
+            );
+        }
     }
 }

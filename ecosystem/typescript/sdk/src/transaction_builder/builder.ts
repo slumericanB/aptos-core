@@ -1,4 +1,4 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 import { sha3_256 as sha3Hash } from "@noble/hashes/sha3";
@@ -273,8 +273,11 @@ export class TransactionBuilderABI {
    * vector<0x1::aptos_coin::AptosCoin>
    * bool
    * u8
+   * u16
+   * u32
    * u64
    * u128
+   * u256
    * address
    * ```
    * @param args Function arguments

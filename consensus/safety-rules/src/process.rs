@@ -1,4 +1,4 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{
@@ -7,7 +7,6 @@ use crate::{
     safety_rules_manager,
 };
 use aptos_config::config::{SafetyRulesConfig, SafetyRulesService};
-
 use std::net::SocketAddr;
 
 pub struct Process {

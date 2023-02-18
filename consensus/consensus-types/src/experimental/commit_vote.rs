@@ -1,15 +1,15 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::common::{Author, Round};
 use anyhow::Context;
 use aptos_crypto::{bls12381, CryptoMaterialError};
+use aptos_short_hex_str::AsShortHexStr;
 use aptos_types::{
     block_info::BlockInfo, ledger_info::LedgerInfo, validator_signer::ValidatorSigner,
     validator_verifier::ValidatorVerifier,
 };
 use serde::{Deserialize, Serialize};
-use short_hex_str::AsShortHexStr;
 use std::fmt::{Debug, Display, Formatter};
 
 #[derive(Deserialize, Serialize, Clone, PartialEq, Eq)]

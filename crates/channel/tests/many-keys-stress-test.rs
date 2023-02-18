@@ -1,7 +1,7 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
-use channel::{aptos_channel, message_queues::QueueStyle};
+use aptos_channels::{aptos_channel, message_queues::QueueStyle};
 use futures::{executor::block_on, stream::StreamExt};
 use std::{
     io::{Cursor, Write},

@@ -1,4 +1,4 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{
@@ -11,13 +11,7 @@ use crate::{
     state_replication::StateComputer,
 };
 use anyhow::{bail, Context};
-use aptos_crypto::HashValue;
-use aptos_logger::prelude::*;
-use aptos_types::{
-    account_address::AccountAddress, epoch_change::EpochChangeProof,
-    ledger_info::LedgerInfoWithSignatures,
-};
-use consensus_types::{
+use aptos_consensus_types::{
     block::Block,
     block_retrieval::{
         BlockRetrievalRequest, BlockRetrievalResponse, BlockRetrievalStatus,
@@ -26,6 +20,12 @@ use consensus_types::{
     common::Author,
     quorum_cert::QuorumCert,
     sync_info::SyncInfo,
+};
+use aptos_crypto::HashValue;
+use aptos_logger::prelude::*;
+use aptos_types::{
+    account_address::AccountAddress, epoch_change::EpochChangeProof,
+    ledger_info::LedgerInfoWithSignatures,
 };
 use fail::fail_point;
 use rand::{prelude::*, Rng};
@@ -75,6 +75,9 @@ impl BlockStore {
         sync_info: &SyncInfo,
         mut retriever: BlockRetriever,
     ) -> anyhow::Result<()> {
+        // // update the logical time for quorum store during state sync
+        // self.data_manager.notify_commit(LogicalTime::new(sync_info.highest_commit_cert().ledger_info().ledger_info().epoch(), sync_info.highest_commit_cert().ledger_info().ledger_info().round()), Vec::new()).await;
+
         self.sync_to_highest_commit_cert(
             sync_info.highest_commit_cert().ledger_info(),
             &retriever.network,
@@ -260,11 +263,15 @@ impl BlockStore {
             .iter()
             .any(|block| block.id() == highest_commit_cert.certified_block().id())
         {
+            info!(
+                "Found forked QC {}, fetching it as well",
+                highest_commit_cert
+            );
             let mut additional_blocks = retriever
                 .retrieve_block_for_qc(
                     highest_commit_cert,
                     1,
-                    highest_commit_cert.commit_info().id(),
+                    highest_commit_cert.certified_block().id(),
                 )
                 .await?;
 
@@ -466,7 +473,7 @@ impl BlockRetriever {
                     progress += batch.len() as u64;
                     last_block_id = batch.last().unwrap().parent_id();
                     result_blocks.extend(batch);
-                }
+                },
                 Ok(result)
                     if matches!(result.status(), BlockRetrievalStatus::SucceededWithTarget) =>
                 {
@@ -474,7 +481,7 @@ impl BlockRetriever {
                     let batch = result.blocks().clone();
                     result_blocks.extend(batch);
                     break;
-                }
+                },
                 e => {
                     warn!(
                         remote_peer = peer,
@@ -492,7 +499,7 @@ impl BlockRetriever {
                     }
                     failed_attempt += 1;
                     peer = self.pick_peer(failed_attempt, peers);
-                }
+                },
             }
         }
         assert_eq!(result_blocks.last().unwrap().id(), target_block_id);

@@ -1,4 +1,4 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 use aptos_types::account_address::AccountAddress;
@@ -82,9 +82,7 @@ impl<'de> Deserialize<'de> for Address {
 #[cfg(test)]
 mod tests {
     use crate::address::Address;
-
     use aptos_types::account_address::AccountAddress;
-
     use serde_json::{json, Value};
 
     #[test]

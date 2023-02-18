@@ -1,27 +1,20 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 // @generated
 pub mod aptos {
-    pub mod block_output {
-        // @@protoc_insertion_point(attribute:aptos.block_output.v1)
+    pub mod datastream {
+        // @@protoc_insertion_point(attribute:aptos.datastream.v1)
         pub mod v1 {
-            include!("aptos.block_output.v1.rs");
-            // @@protoc_insertion_point(aptos.block_output.v1)
+            include!("aptos.datastream.v1.rs");
+            // @@protoc_insertion_point(aptos.datastream.v1)
         }
     }
-    pub mod extractor {
-        // @@protoc_insertion_point(attribute:aptos.extractor.v1)
+    pub mod transaction {
+        // @@protoc_insertion_point(attribute:aptos.transaction.v1)
         pub mod v1 {
-            include!("aptos.extractor.v1.rs");
-            // @@protoc_insertion_point(aptos.extractor.v1)
-        }
-    }
-    pub mod tokens {
-        // @@protoc_insertion_point(attribute:aptos.tokens.v1)
-        pub mod v1 {
-            include!("aptos.tokens.v1.rs");
-            // @@protoc_insertion_point(aptos.tokens.v1)
+            include!("aptos.transaction.v1.rs");
+            // @@protoc_insertion_point(aptos.transaction.v1)
         }
     }
     pub mod util {

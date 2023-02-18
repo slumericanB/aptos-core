@@ -1,4 +1,4 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 use generate_format::Corpus;
@@ -30,7 +30,7 @@ fn main() {
             Some(path) => {
                 let mut f = File::create("testsuite/generate-format/".to_string() + path).unwrap();
                 write!(f, "{}", content).unwrap();
-            }
+            },
             None => panic!("Corpus {:?} doesn't record formats on disk", options.corpus),
         }
     } else {

@@ -1,8 +1,7 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::account_address::AccountAddress;
-
 pub use move_core_types::language_storage::CORE_CODE_ADDRESS;
 
 pub fn aptos_test_root_address() -> AccountAddress {

@@ -1,10 +1,10 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::metrics::LEDGER_COUNTER;
+use aptos_num_variants::NumVariants;
 use num_derive::ToPrimitive;
 use num_traits::ToPrimitive;
-use num_variants::NumVariants;
 #[cfg(test)]
 use proptest::{collection::hash_map, prelude::*};
 #[cfg(test)]

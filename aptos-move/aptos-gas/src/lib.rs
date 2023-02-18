@@ -1,4 +1,4 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 //! This crate is the core of the gas metering system of the Aptos blockchain.
@@ -45,4 +45,4 @@ pub use move_core_types::gas_algebra::{
     Arg, Byte, GasQuantity, InternalGas, InternalGasPerArg, InternalGasPerByte, InternalGasUnit,
     NumArgs, NumBytes, UnitDiv,
 };
-pub use transaction::{StorageGasParameters, TransactionGasParameters};
+pub use transaction::{ChangeSetConfigs, StorageGasParameters, TransactionGasParameters};

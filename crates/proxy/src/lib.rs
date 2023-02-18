@@ -1,4 +1,4 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 use ipnet::IpNet;
@@ -28,6 +28,7 @@ struct NoProxy {
     domains: DomainMatcher,
 }
 
+#[derive(Default)]
 pub struct Proxy {
     http_proxy: Option<String>,
     https_proxy: Option<String>,
@@ -124,12 +125,12 @@ impl IpMatcher {
                     if &addr == address {
                         return true;
                     }
-                }
+                },
                 Ip::Network(net) => {
                     if net.contains(&addr) {
                         return true;
                     }
-                }
+                },
             }
         }
         false

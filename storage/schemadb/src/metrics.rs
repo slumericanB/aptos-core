@@ -1,4 +1,4 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 use aptos_metrics_core::{
@@ -95,11 +95,9 @@ pub static APTOS_SCHEMADB_PUT_BYTES: Lazy<HistogramVec> = Lazy::new(|| {
 });
 
 pub static APTOS_SCHEMADB_DELETES: Lazy<IntCounterVec> = Lazy::new(|| {
-    register_int_counter_vec!(
-        "aptos_storage_deletes",
-        "Aptos storage delete calls",
-        &["cf_name"]
-    )
+    register_int_counter_vec!("aptos_storage_deletes", "Aptos storage delete calls", &[
+        "cf_name"
+    ])
     .unwrap()
 });
 

@@ -1,4 +1,4 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::experimental::hashable::Hashable;
@@ -50,14 +50,11 @@ impl<T: Hashable> Buffer<T> {
     pub fn push_back(&mut self, elem: T) {
         self.count = self.count.checked_add(1).unwrap();
         let t_hash = elem.hash();
-        self.map.insert(
-            t_hash,
-            LinkedItem {
-                elem: Some(elem),
-                index: self.count,
-                next: None,
-            },
-        );
+        self.map.insert(t_hash, LinkedItem {
+            elem: Some(elem),
+            index: self.count,
+            next: None,
+        });
         if let Some(tail) = self.tail {
             self.map.get_mut(&tail).unwrap().next = Some(t_hash);
         }

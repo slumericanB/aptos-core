@@ -1,22 +1,21 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::db_metadata::DbMetadataSchema;
-use crate::pruner::state_store::generics::StaleNodeIndexSchemaTrait;
-use crate::schema::db_metadata::DbMetadataValue;
 use crate::{
-    jellyfish_merkle_node::JellyfishMerkleNodeSchema, metrics::PRUNER_LEAST_READABLE_VERSION,
-    pruner::db_pruner::DBPruner, pruner_utils, StaleNodeIndexCrossEpochSchema,
-    OTHER_TIMERS_SECONDS,
+    db_metadata::DbMetadataSchema,
+    jellyfish_merkle_node::JellyfishMerkleNodeSchema,
+    metrics::PRUNER_LEAST_READABLE_VERSION,
+    pruner::{db_pruner::DBPruner, state_store::generics::StaleNodeIndexSchemaTrait},
+    pruner_utils,
+    schema::db_metadata::DbMetadataValue,
+    StaleNodeIndexCrossEpochSchema, OTHER_TIMERS_SECONDS,
 };
 use anyhow::Result;
 use aptos_infallible::Mutex;
-use aptos_jellyfish_merkle::node_type::NodeKey;
-use aptos_jellyfish_merkle::StaleNodeIndex;
+use aptos_jellyfish_merkle::{node_type::NodeKey, StaleNodeIndex};
 use aptos_logger::error;
+use aptos_schemadb::{schema::KeyCodec, ReadOptions, SchemaBatch, DB};
 use aptos_types::transaction::{AtomicVersion, Version};
-use schemadb::schema::KeyCodec;
-use schemadb::{ReadOptions, SchemaBatch, DB};
 use std::sync::{atomic::Ordering, Arc};
 
 pub mod generics;
@@ -64,8 +63,16 @@ where
                 );
                 Err(e)
                 // On error, stop retrying vigorously by making next recv() blocking.
-            }
+            },
         }
+    }
+
+    fn save_min_readable_version(
+        &self,
+        version: Version,
+        batch: &SchemaBatch,
+    ) -> anyhow::Result<()> {
+        batch.put::<DbMetadataSchema>(&S::tag(), &DbMetadataValue::Version(version))
     }
 
     fn initialize_min_readable_version(&self) -> Result<Version> {
@@ -130,6 +137,9 @@ where
         existing_schema_batch: Option<&mut SchemaBatch>,
     ) -> anyhow::Result<Version> {
         assert_ne!(batch_size, 0);
+        if target_version < min_readable_version {
+            return Ok(min_readable_version);
+        }
         let (indices, is_end_of_target_version) =
             self.get_stale_node_indices(min_readable_version, target_version, batch_size)?;
         if indices.is_empty() {
@@ -155,10 +165,7 @@ where
                     batch.delete::<S>(&index)
                 })?;
 
-                batch.put::<DbMetadataSchema>(
-                    &S::tag(),
-                    &DbMetadataValue::Version(new_min_readable_version),
-                )?;
+                self.save_min_readable_version(new_min_readable_version, &batch)?;
 
                 // Commit to DB.
                 self.state_merkle_db.write_schemas(batch)?;

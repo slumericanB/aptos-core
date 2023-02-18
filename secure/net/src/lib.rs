@@ -1,4 +1,4 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 #![forbid(unsafe_code)]
@@ -387,7 +387,7 @@ impl NetworkServer {
                     )
                     .error(&err));
                     return Err(err);
-                }
+                },
             };
 
             self.increment_counter(Method::Connect, MethodResult::Success);

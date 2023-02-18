@@ -1,8 +1,8 @@
-// Copyright (c) Aptos
+// Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{LoadDestination, NetworkLoadTest};
-use forge::{NetworkContext, NetworkTest, Swarm, SwarmChaos, SwarmNetworkBandwidth, Test};
+use aptos_forge::{NetworkContext, NetworkTest, Swarm, SwarmChaos, SwarmNetworkBandwidth, Test};
 
 pub struct NetworkBandwidthTest;
 
@@ -34,7 +34,7 @@ impl NetworkLoadTest for NetworkBandwidthTest {
         );
         println!("{}", msg);
         ctx.report.report_text(msg);
-        Ok(LoadDestination::AllNodes)
+        Ok(LoadDestination::FullnodesOtherwiseValidators)
     }
 
     fn finish(&self, swarm: &mut dyn Swarm) -> anyhow::Result<()> {
